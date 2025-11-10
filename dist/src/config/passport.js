@@ -7,7 +7,7 @@ exports.verifyGoogleToken = void 0;
 const google_auth_library_1 = require("google-auth-library");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const User_1 = require("../models/shema/auth/User");
+const User_1 = require("../models/schema/auth/User");
 dotenv_1.default.config();
 const client = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const verifyGoogleToken = async (req, res) => {
@@ -27,10 +27,10 @@ const verifyGoogleToken = async (req, res) => {
         const name = payload.name || "Unknown User";
         const googleId = payload.sub;
         // 🔍 check if user exists by googleId OR email
-        let user = await User_1.UserModel.findOne({ $or: [{ googleId }, { email }] });
+        let user = await User_1.User.findOne({ $or: [{ googleId }, { email }] });
         if (!user) {
             // ➕ Signup (new user)
-            user = new User_1.UserModel({
+            user = new User_1.User({
                 googleId,
                 email,
                 name,

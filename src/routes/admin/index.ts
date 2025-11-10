@@ -6,7 +6,6 @@ import {  authorizeRoles } from "../../middlewares/authorized";
 export const route = Router();
 
 route.use("/auth", authRouter);
-route.use(authenticated,authorizeRoles("admin"));
 
 
 export default route;

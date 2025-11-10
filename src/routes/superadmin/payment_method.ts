@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { createPaymentMethod, getAllPaymentMethods, getPaymentMethodById, deletePaymentMethodById } from "../../controller/superadmin/payment_methods";
+import { catchAsync } from "../../utils/catchAsync";
+import { CreatePaymentMethodSchema,UpdatePaymentMethodSchema } from "../../validation/superadmin/payment_method";
+import { validate } from "../../middlewares/validation";
+export const paymentMethodRouter = Router();
+paymentMethodRouter.post("/",validate(CreatePaymentMethodSchema) ,catchAsync(createPaymentMethod));
+paymentMethodRouter.get("/", catchAsync(getAllPaymentMethods));
+paymentMethodRouter.get("/:id", catchAsync(getPaymentMethodById));
+paymentMethodRouter.put("/:id", validate(UpdatePaymentMethodSchema) ,catchAsync(createPaymentMethod));
+paymentMethodRouter.delete("/:id", catchAsync(deletePaymentMethodById));
+export default paymentMethodRouter;

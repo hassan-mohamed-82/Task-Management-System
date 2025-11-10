@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.paymentMethodRouter = void 0;
+const express_1 = require("express");
+const payment_methods_1 = require("../../controller/superadmin/payment_methods");
+const catchAsync_1 = require("../../utils/catchAsync");
+const payment_method_1 = require("../../validation/superadmin/payment_method");
+const validation_1 = require("../../middlewares/validation");
+exports.paymentMethodRouter = (0, express_1.Router)();
+exports.paymentMethodRouter.post("/", (0, validation_1.validate)(payment_method_1.CreatePaymentMethodSchema), (0, catchAsync_1.catchAsync)(payment_methods_1.createPaymentMethod));
+exports.paymentMethodRouter.get("/", (0, catchAsync_1.catchAsync)(payment_methods_1.getAllPaymentMethods));
+exports.paymentMethodRouter.get("/:id", (0, catchAsync_1.catchAsync)(payment_methods_1.getPaymentMethodById));
+exports.paymentMethodRouter.put("/:id", (0, validation_1.validate)(payment_method_1.UpdatePaymentMethodSchema), (0, catchAsync_1.catchAsync)(payment_methods_1.createPaymentMethod));
+exports.paymentMethodRouter.delete("/:id", (0, catchAsync_1.catchAsync)(payment_methods_1.deletePaymentMethodById));
+exports.default = exports.paymentMethodRouter;

@@ -1,5 +1,5 @@
 import mongoose, { Types } from 'mongoose';
-import { UserModel } from './User';
+import { IUser } from './User';
 
 interface EmailVerificationDocument extends mongoose.Document {
   userId: Types.ObjectId;
@@ -8,7 +8,7 @@ interface EmailVerificationDocument extends mongoose.Document {
 }
 const EmailVerificationSchema = new mongoose.Schema<EmailVerificationDocument>(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: UserModel, required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "IUser", required: true },
     verificationCode: { type: String, required: true },
     expiresAt: { type: Date, required: true },
   },

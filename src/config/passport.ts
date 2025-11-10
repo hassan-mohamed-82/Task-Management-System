@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { UserModel } from "../models/shema/auth/User";
+import { User } from "../models/schema/auth/User";
 
 dotenv.config();
 
@@ -31,11 +31,11 @@ export const verifyGoogleToken = async (req: Request, res: Response) => {
     const googleId = payload.sub;
 
     // 🔍 check if user exists by googleId OR email
-    let user = await UserModel.findOne({ $or: [{ googleId }, { email }] });
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
     if (!user) {
       // ➕ Signup (new user)
-      user = new UserModel({
+      user = new User({
         googleId,
         email,
         name,

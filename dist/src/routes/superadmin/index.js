@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.route = void 0;
+const express_1 = require("express");
+const auth_1 = __importDefault(require("./auth"));
+const plans_1 = __importDefault(require("./plans"));
+const Coupon_1 = __importDefault(require("./Coupon"));
+const payment_method_1 = __importDefault(require("./payment_method"));
+const Admin_1 = __importDefault(require("./Admin"));
+const authenticated_1 = require("../../middlewares/authenticated");
+const authorized_1 = require("../../middlewares/authorized");
+exports.route = (0, express_1.Router)();
+exports.route.use("/auth", auth_1.default);
+exports.route.use(authenticated_1.authenticated, (0, authorized_1.authorizeRoles)('SuperAdmin'));
+exports.route.use("/plans", plans_1.default);
+exports.route.use("/coupons", Coupon_1.default);
+exports.route.use("/payment-methods", payment_method_1.default);
+exports.route.use("/admins", Admin_1.default);
+exports.default = exports.route;

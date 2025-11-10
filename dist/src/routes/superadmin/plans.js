@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.plansRouter = void 0;
+const express_1 = require("express");
+const plans_1 = require("../../controller/superadmin/plans");
+const catchAsync_1 = require("../../utils/catchAsync");
+const plans_2 = require("../../validation/superadmin/plans");
+const validation_1 = require("../../middlewares/validation");
+exports.plansRouter = (0, express_1.Router)();
+exports.plansRouter.post("/", (0, validation_1.validate)(plans_2.createPlanSchema), (0, catchAsync_1.catchAsync)(plans_1.createPlan));
+exports.plansRouter.get("/", (0, catchAsync_1.catchAsync)(plans_1.getAllPlans));
+exports.plansRouter.get("/:id", (0, catchAsync_1.catchAsync)(plans_1.getPlanById));
+exports.plansRouter.put("/:id", (0, validation_1.validate)(plans_2.updatePlanSchema), (0, catchAsync_1.catchAsync)(plans_1.updatePlanById));
+exports.plansRouter.delete("/:id", (0, catchAsync_1.catchAsync)(plans_1.deletePlanById));
+exports.default = exports.plansRouter;

@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.adminRouter = void 0;
+const express_1 = require("express");
+const Admin_1 = require("../../controller/superadmin/Admin");
+const catchAsync_1 = require("../../utils/catchAsync");
+const Admin_2 = require("../../validation/superadmin/Admin");
+const validation_1 = require("../../middlewares/validation");
+exports.adminRouter = (0, express_1.Router)();
+exports.adminRouter.post("/", (0, validation_1.validate)(Admin_2.createAdminSchema), (0, catchAsync_1.catchAsync)(Admin_1.createUser));
+exports.adminRouter.get("/", (0, catchAsync_1.catchAsync)(Admin_1.getAllUsers));
+exports.adminRouter.get("/:id", (0, catchAsync_1.catchAsync)(Admin_1.getUserById));
+exports.adminRouter.put("/:id", (0, validation_1.validate)(Admin_2.updateAdminSchema), (0, catchAsync_1.catchAsync)(Admin_1.updateUserById));
+exports.adminRouter.delete("/:id", (0, catchAsync_1.catchAsync)(Admin_1.deleteUserById));
+exports.default = exports.adminRouter;

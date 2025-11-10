@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { createCoupon, getAllCoupons, getCouponById, deleteCouponById, updateCouponById } from "../../controller/superadmin/Coupon";
+import { catchAsync } from "../../utils/catchAsync";
+import { createCouponSchema, updateCouponSchema } from "../../validation/superadmin/Coupon";
+import { validate } from "../../middlewares/validation";
+const route = Router();
+route.post("/", validate(createCouponSchema), catchAsync(createCoupon));
+route.get("/", catchAsync(getAllCoupons));
+route.get("/:id", catchAsync(getCouponById));
+route.put("/:id", validate(updateCouponSchema), catchAsync(updateCouponById));
+route.delete("/:id", catchAsync(deleteCouponById));
+export default route;
