@@ -3,6 +3,8 @@ import authRouter from "./auth";
 import projectRouter from "./project";
 import SubscriptionRouter from "./subscription";
 import DepartmentRouter  from "./Department";
+import UserProjectRouter from "./User_Project";
+import usertaskRouter from "./User_Task";
 import { authenticated } from "../../middlewares/authenticated";
 import {  authorizeRoles } from "../../middlewares/authorized";
 
@@ -13,6 +15,7 @@ route.use(authenticated, authorizeRoles('admin'));
 route.use("/project", projectRouter);
 route.use("/subscriptions", SubscriptionRouter);
 route.use("/departments", DepartmentRouter);
-
+route.use("/user-project", UserProjectRouter);
+route.use("/user-task", usertaskRouter);
 
 export default route;

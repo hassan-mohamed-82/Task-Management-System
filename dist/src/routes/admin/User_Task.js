@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const User_Task_1 = require("../../controller/admin/User_Task");
+const catchAsync_1 = require("../../utils/catchAsync");
+const route = (0, express_1.Router)();
+route.post("/", (0, catchAsync_1.catchAsync)(User_Task_1.addUserTask));
+route.get("/", (0, catchAsync_1.catchAsync)(User_Task_1.getalluserattask));
+route.delete("/", (0, catchAsync_1.catchAsync)(User_Task_1.removeUserFromTask));
+exports.default = route;

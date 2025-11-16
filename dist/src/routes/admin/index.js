@@ -9,6 +9,8 @@ const auth_1 = __importDefault(require("./auth"));
 const project_1 = __importDefault(require("./project"));
 const subscription_1 = __importDefault(require("./subscription"));
 const Department_1 = __importDefault(require("./Department"));
+const User_Project_1 = __importDefault(require("./User_Project"));
+const User_Task_1 = __importDefault(require("./User_Task"));
 const authenticated_1 = require("../../middlewares/authenticated");
 const authorized_1 = require("../../middlewares/authorized");
 exports.route = (0, express_1.Router)();
@@ -17,4 +19,6 @@ exports.route.use(authenticated_1.authenticated, (0, authorized_1.authorizeRoles
 exports.route.use("/project", project_1.default);
 exports.route.use("/subscriptions", subscription_1.default);
 exports.route.use("/departments", Department_1.default);
+exports.route.use("/user-project", User_Project_1.default);
+exports.route.use("/user-task", User_Task_1.default);
 exports.default = exports.route;

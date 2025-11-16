@@ -13,6 +13,8 @@ export interface ITask extends Document {
   recorde:String;
   file:String;
   status: TaskStatus;
+  createdBy: Types.ObjectId | IUser;
+  Depatment_id?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +33,9 @@ const taskSchema = new Schema<ITask>(
     },
     recorde:{ type: String },
     file:{ type: String },
+    Depatment_id:{ type: Schema.Types.ObjectId, ref: 'Department' },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+
   },
   { timestamps: true }
 );

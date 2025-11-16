@@ -15,5 +15,7 @@ const taskSchema = new mongoose_1.Schema({
     },
     recorde: { type: String },
     file: { type: String },
+    Depatment_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Department' },
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 exports.TaskModel = (0, mongoose_1.model)('Task', taskSchema);
