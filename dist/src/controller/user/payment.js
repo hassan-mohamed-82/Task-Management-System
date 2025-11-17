@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPaymentById = exports.getAllPayments = exports.createPayment = void 0;
+exports.selectforpayment = exports.getPaymentById = exports.getAllPayments = exports.createPayment = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const plans_1 = require("../../models/schema/plans");
 const payment_1 = require("../../models/schema/payment");
@@ -14,6 +14,7 @@ const response_1 = require("../../utils/response");
 const Coupon_1 = require("../../models/schema/Coupon");
 const CouponUser_1 = require("../../models/schema/CouponUser");
 const handleImages_1 = require("../../utils/handleImages");
+const payment_methods_1 = require("../../models/schema/payment_methods");
 const createPayment = async (req, res) => {
     if (!req.user)
         throw new unauthorizedError_1.UnauthorizedError("User is not authenticated");
@@ -118,3 +119,9 @@ const getPaymentById = async (req, res) => {
     (0, response_1.SuccessResponse)(res, { message: "Payment fetched successfully", payment });
 };
 exports.getPaymentById = getPaymentById;
+const selectforpayment = async (req, res) => {
+    const plan = await plans_1.PlanModel.find();
+    const paymentmethod = await payment_methods_1.PaymentMethodModel.find();
+    (0, response_1.SuccessResponse)(res, { message: "Payment fetched successfully", plan, paymentmethod });
+};
+exports.selectforpayment = selectforpayment;

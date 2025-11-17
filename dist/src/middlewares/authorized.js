@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authorizeRoleAtProject = exports.authorizeRoles = void 0;
 const unauthorizedError_1 = require("../Errors/unauthorizedError");
-const BadRequest_1 = require("../Errors/BadRequest");
 const User_Project_1 = require("../models/schema/User_Project");
 const authorizeRoles = (...roles) => {
     return (req, res, next) => {
@@ -17,14 +16,10 @@ const authorizeRoles = (...roles) => {
 exports.authorizeRoles = authorizeRoles;
 const authorizeRoleAtProject = (roles) => {
     return async (req, res, next) => {
-        const userId = req.user?.id;
+        const userId = req.user?.id ?? req.body.userId;
         const projectId = req.params.project_id ?? req.body.project_id;
-        if (!userId)
-            throw new BadRequest_1.BadRequest("User ID missing");
-        if (!projectId)
-            throw new BadRequest_1.BadRequest("Project ID missing");
         // Super Admin على النظام يتخطى كل شيء
-        if (req.user?.role === "super_admin")
+        if (req.user?.role === "SuperAdmin")
             return next();
         // Admin على مستوى النظام يسمح له على كل مشاريع العميل
         if (req.user?.role === "admin")

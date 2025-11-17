@@ -15,15 +15,14 @@ export function authenticated(req: Request, res: Response, next: NextFunction) {
   try {
     const decoded = verifyToken(token) as { id: string, role: string, email: string };
 
-    // نخزن بيانات المستخدم في req.user بشكل موحد
-    req.user = {
+req.user = {
   _id: new Types.ObjectId(decoded.id),
-      role: decoded.role,
-      email: decoded.email,
-    };
+  role: decoded.role,
+  email: decoded.email
+};
 
     next();
   } catch (error) {
     throw new UnauthorizedError("Invalid or expired token");
   }
-}
+}   

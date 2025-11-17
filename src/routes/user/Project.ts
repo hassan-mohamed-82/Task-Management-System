@@ -1,7 +1,7 @@
 import { Router } from "express";
-import {getProjectById,getUserProjects} from '../../controller/user/project'
+import {getallProject,getProjectDetailsForUser} from '../../controller/user/project'
 import { catchAsync } from "../../utils/catchAsync";
 const route = Router();
-route.get("/", catchAsync(getUserProjects));
-route.get("/:id", catchAsync(getProjectById));
+route.get("/:project_id", catchAsync(getProjectDetailsForUser));
+route.get("/", catchAsync(getallProject));
 export default route;

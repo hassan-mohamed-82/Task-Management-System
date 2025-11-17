@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserTaskModel = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const UserTaskSchema = new mongoose_1.Schema({
-    user_id: {
+    userId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
         required: true,
@@ -48,7 +48,7 @@ const UserTaskSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'in_progress', 'done', 'Approved', 'rejected'],
+        enum: ['pending', 'in_progress', 'done', 'Pending_Approval', 'Approved', 'rejected'],
         required: true,
     },
     rejection_reason: {

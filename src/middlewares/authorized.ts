@@ -18,14 +18,11 @@ export const authorizeRoles = (...roles: string[]): RequestHandler => {
 
 export const authorizeRoleAtProject = (roles: string[]): RequestHandler => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user?.id;
-    const projectId = req.params.project_id ?? req.body.project_id;
-
-    if (!userId) throw new BadRequest("User ID missing");
-    if (!projectId) throw new BadRequest("Project ID missing");
+    const userId = req.user?.id ?? req.body.userId;
+const projectId = req.params.project_id ?? req.body.project_id;
 
     // Super Admin على النظام يتخطى كل شيء
-    if (req.user?.role === "super_admin") return next();
+    if (req.user?.role === "SuperAdmin") return next();
 
     // Admin على مستوى النظام يسمح له على كل مشاريع العميل
     if (req.user?.role === "admin") return next();

@@ -2,15 +2,15 @@ import mongoose, { Schema, Document } from "mongoose";
 import {  TaskStatus } from "./Tasks";
 
 export interface IUserTask extends Document {
-  user_id: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   task_id: mongoose.Types.ObjectId;
-  status?:'pending' | 'in_progress' | 'done' | 'Approved' | 'rejected';
+  status?:'pending' | 'in_progress' | 'done' | 'Approved' | 'rejected' | 'Pending_Approval';
   rejection_reason?: string;
 }
 
 const UserTaskSchema = new Schema<IUserTask>(
   {
-    user_id: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -22,7 +22,7 @@ const UserTaskSchema = new Schema<IUserTask>(
     },
     status: {
       type: String,
-      enum: ['pending', 'in_progress', 'done', 'Approved', 'rejected'],
+     enum: ['pending', 'in_progress', 'done', 'Pending_Approval', 'Approved', 'rejected'],
       required: true,
     },
     rejection_reason: {

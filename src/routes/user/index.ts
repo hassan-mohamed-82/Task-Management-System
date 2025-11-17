@@ -15,9 +15,9 @@ route.use("/payment-methods", paymentMethodRouter);
 route.use("/payments", paymentRouter);
 route.use("/plans", plansRouter);
 route.use("/projects",
-    authorizeRoleAtProject(['member','viewer']), 
+    // authorizeRoleAtProject(['member','viewer']), 
     ProjectRouter);
 route.use("/tasks", 
-    authorizeRoleAtProject(['member'])
-    ,TaskeRouter);
+   // authorizeRoleAtProject(['member'])
+    TaskeRouter);
  export default route;

@@ -9,6 +9,7 @@ import { SuccessResponse } from "../../utils/response";
 import { CouponModel } from "../../models/schema/Coupon";
 import { CouponUserModel } from "../../models/schema/CouponUser";
 import { saveBase64Image } from "../../utils/handleImages";
+import { PaymentMethodModel } from "../../models/schema/payment_methods";
 
 export const createPayment = async (req: Request, res: Response) => {
   if (!req.user) throw new UnauthorizedError("User is not authenticated");
@@ -122,3 +123,11 @@ export const getPaymentById = async (req: Request, res: Response) => {
 
   SuccessResponse(res, { message: "Payment fetched successfully", payment });
 };
+
+
+
+export const selectforpayment = async (req: Request, res: Response) => {
+  const plan=await PlanModel.find();
+  const paymentmethod=await PaymentMethodModel.find();
+  SuccessResponse(res, { message: "Payment fetched successfully", plan,paymentmethod });
+}

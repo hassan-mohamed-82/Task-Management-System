@@ -8,19 +8,19 @@ const joi_1 = __importDefault(require("joi"));
 exports.createTaskSchema = joi_1.default.object({
     name: joi_1.default.string().required(),
     description: joi_1.default.string().optional(),
-    project_id: joi_1.default.string().required(),
+    projectId: joi_1.default.string().required(),
     end_date: joi_1.default.date().optional(),
     priority: joi_1.default.string().valid('low', 'medium', 'high').optional(),
     status: joi_1.default.string().valid('Pending', 'in_progress', 'done', 'Approved', 'rejected').default('Pending'),
     recorde: joi_1.default.string().optional(),
     file: joi_1.default.string().optional(),
     Depatment_id: joi_1.default.string().optional(),
-    createdBy: joi_1.default.string().required(),
+    userId: joi_1.default.string().optional(),
 });
 exports.updateTaskSchema = joi_1.default.object({
     name: joi_1.default.string().optional(),
     description: joi_1.default.string().optional(),
-    project_id: joi_1.default.string().optional(),
+    projectId: joi_1.default.string().optional(),
     end_date: joi_1.default.date().optional(),
     priority: joi_1.default.string().valid('low', 'medium', 'high').optional(),
     status: joi_1.default.string().valid('Pending', 'in_progress', 'done', 'Approved', 'rejected').optional(),

@@ -23,18 +23,20 @@ const addUserTask = async (req, res) => {
     if (!user) {
         throw new NotFound_1.NotFound("User not found");
     }
-    const project = await project_1.ProjectModel.findById(task.project_id);
+    const project = await project_1.ProjectModel.findById(task.projectId);
     if (!project) {
         throw new NotFound_1.NotFound("Project not found");
     }
     // التأكد أن اليوزر موجود في المشروع
-    const userProject = await User_Project_1.UserProjectModel.findOne({ user_id, project_id: project._id });
+    const userProject = await User_Project_1.UserProjectModel.findOne({
+        userId: user_id,
+        project_id: project._id
+    });
     if (!userProject) {
         throw new unauthorizedError_1.UnauthorizedError("User is not a member of the project");
     }
-    // إنشاء علاقة User_Task بدل تعديل Task مباشرة
     const userTask = await User_Task_1.UserTaskModel.create({
-        user_id,
+        userId: user_id, // صحح الاسم هنا
         task_id: task._id,
         status: "pending" // default status
     });
@@ -54,12 +56,12 @@ const removeUserFromTask = async (req, res) => {
     if (!user) {
         throw new NotFound_1.NotFound("User not found");
     }
-    const project = await project_1.ProjectModel.findById(task.project_id);
+    const project = await project_1.ProjectModel.findById(task.projectId);
     if (!project) {
         throw new NotFound_1.NotFound("Project not found");
     }
     // التأكد أن اليوزر موجود في المشروع
-    const userProject = await User_Project_1.UserProjectModel.findOne({ user_id, project_id: project._id });
+    const userProject = await User_Project_1.UserProjectModel.findOne({ user_id, projectId: project._id });
     if (!userProject) {
         throw new unauthorizedError_1.UnauthorizedError("User is not a member of the project");
     }
@@ -72,42 +74,49 @@ const removeUserFromTask = async (req, res) => {
 exports.removeUserFromTask = removeUserFromTask;
 const getalluserattask = async (req, res) => {
     const { taskId } = req.params;
-    if (!taskId) {
+    if (!taskId)
         throw new BadRequest_1.BadRequest("Task ID is required");
-    }
     const task = await Tasks_1.TaskModel.findById(taskId);
-    if (!task) {
+    if (!task)
         throw new NotFound_1.NotFound("Task not found");
-    }
-    const userTasks = await User_Task_1.UserTaskModel.find({ task_id: task._id }).populate("user_id", "name email photo");
+    // صححت الاسم هنا
+    const userTasks = await User_Task_1.UserTaskModel.find({ task_id: task._id })
+        .populate("userId", "name email photo");
     (0, response_1.SuccessResponse)(res, { message: "Users fetched successfully", userTasks });
 };
 exports.getalluserattask = getalluserattask;
 const updateTaskStatus = async (req, res) => {
     const { taskId, userId } = req.params;
     const { status, rejection_reason } = req.body;
-    const userTask = await User_Task_1.UserTaskModel.findOne({ task_id: taskId, user_id: userId });
+    const userTask = await User_Task_1.UserTaskModel.findOne({
+        task_id: taskId,
+        user_id: userId
+    });
     if (!userTask)
         throw new NotFound_1.NotFound("User task not found");
-    // التحقق أن الحالة الحالية هي done قبل أي تحديث
-    if (userTask.status !== 'done') {
+    // لازم تكون الحالة الحالية done علشان approve أو reject
+    if (userTask.status !== "done") {
         throw new BadRequest_1.BadRequest("Task must be in 'done' status to approve or reject");
     }
-    // تحديث الحالة
-    if (status === 'rejected') {
+    // --- لو رفض ---
+    if (status === "rejected") {
         if (!rejection_reason)
             throw new BadRequest_1.BadRequest("Rejection reason is required");
-        userTask.status = 'pending'; // يرجع المهمة إلى pending بعد الرفض
+        userTask.status = "in_progress"; // ❗ يبدأ شغل من جديد
         userTask.rejection_reason = rejection_reason;
     }
-    else if (status === 'Approved') {
-        userTask.status = 'Approved';
-        userTask.rejection_reason = rejection_reason || null;
+    // --- لو موافقة ---
+    else if (status === "Approved") {
+        userTask.status = "Approved";
+        userTask.rejection_reason = undefined; // يتم مسح سبب الرفض
     }
     else {
         throw new BadRequest_1.BadRequest("Invalid status. Only 'Approved' or 'rejected' allowed for done tasks");
     }
     await userTask.save();
-    return (0, response_1.SuccessResponse)(res, { message: "Task status updated successfully", userTask });
+    return (0, response_1.SuccessResponse)(res, {
+        message: "Task status updated successfully",
+        userTask,
+    });
 };
 exports.updateTaskStatus = updateTaskStatus;

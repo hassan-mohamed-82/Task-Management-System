@@ -43,7 +43,7 @@ const SuperAdminSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    role: { type: String, default: "SuperAdmin", immutable: true },
+    role: { type: String, default: "}", immutable: true },
 }, { timestamps: true });
 // 🔐 تشفير كلمة المرور قبل الحفظ
 SuperAdminSchema.pre("save", async function (next) {

@@ -6,5 +6,6 @@ const catchAsync_1 = require("../../utils/catchAsync");
 const route = (0, express_1.Router)();
 route.post("/", (0, catchAsync_1.catchAsync)(payment_1.createPayment));
 route.get("/", (0, catchAsync_1.catchAsync)(payment_1.getAllPayments));
+route.get("/select", (0, catchAsync_1.catchAsync)(payment_1.selectforpayment));
 route.get("/:id", (0, catchAsync_1.catchAsync)(payment_1.getPaymentById));
 exports.default = route;

@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUserProject extends Document {
-  user_id: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   email: string;
   project_id: mongoose.Types.ObjectId;
   role?:'administrator' | 'Member' | 'viewer';
@@ -13,7 +13,7 @@ const UserProjectSchema = new Schema<IUserProject>(
       type: String,
       required: true,
     },
-    user_id: {
+    userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,

@@ -5,7 +5,7 @@ const mongoose_1 = require("mongoose");
 const taskSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     description: { type: String },
-    project_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
+    projectId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project' },
     end_date: { type: Date },
     priority: { type: String, enum: ['low', 'medium', 'high'] },
     status: {
@@ -16,6 +16,6 @@ const taskSchema = new mongoose_1.Schema({
     recorde: { type: String },
     file: { type: String },
     Depatment_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Department' },
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 exports.TaskModel = (0, mongoose_1.model)('Task', taskSchema);

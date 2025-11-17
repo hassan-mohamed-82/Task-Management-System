@@ -7,13 +7,13 @@ export type TaskStatus = 'Pending' | 'in_progress' | 'done' | 'Approved' | 'reje
 export interface ITask extends Document {
   name: string;
   description?: string;
-  project_id: Types.ObjectId | IProject;
+  projectId: Types.ObjectId | IProject;
   end_date?: Date;
   priority?: 'low' | 'medium' | 'high';
   recorde:String;
   file:String;
   status: TaskStatus;
-  createdBy: Types.ObjectId | IUser;
+  userId: Types.ObjectId | IUser;
   Depatment_id?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -23,7 +23,7 @@ const taskSchema = new Schema<ITask>(
   {
     name: { type: String, required: true },
     description: { type: String },
-    project_id: { type: Schema.Types.ObjectId, ref: 'Project' },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
     end_date: { type: Date },
     priority: { type:String, enum: ['low', 'medium', 'high'] },
     status: {
@@ -34,7 +34,7 @@ const taskSchema = new Schema<ITask>(
     recorde:{ type: String },
     file:{ type: String },
     Depatment_id:{ type: Schema.Types.ObjectId, ref: 'Department' },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 
   },
   { timestamps: true }

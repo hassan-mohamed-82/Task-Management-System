@@ -12,11 +12,10 @@ function authenticated(req, res, next) {
     const token = authHeader.split(" ")[1];
     try {
         const decoded = (0, auth_1.verifyToken)(token);
-        // نخزن بيانات المستخدم في req.user بشكل موحد
         req.user = {
             _id: new mongoose_1.Types.ObjectId(decoded.id),
             role: decoded.role,
-            email: decoded.email,
+            email: decoded.email
         };
         next();
     }
