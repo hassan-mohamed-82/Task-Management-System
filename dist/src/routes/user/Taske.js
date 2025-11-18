@@ -11,4 +11,12 @@ route.get("/:project_id", (0, catchAsync_1.catchAsync)(taske_1.getUserTasksByPro
 route.put("/:taskId", (0, catchAsync_1.catchAsync)(taske_1.updateUserTaskStatus));
 // طلب الموافقة على المهمة
 route.put("/request/:taskId", (0, catchAsync_1.catchAsync)(taske_1.requestTaskApproval));
+// جلب كل اليوزرز في التاسك
+route.get("/:taskId", (0, catchAsync_1.catchAsync)(taske_1.getalluserattask));
+// حذف يوزر من التاسك → فقط Admin/Administrator
+route.delete("/:taskId/:user_id", (0, catchAsync_1.catchAsync)(taske_1.removeUserFromTask));
+// اضافة يوزر للتاسك → فقط Admin/Administrator
+route.post("/", (0, catchAsync_1.catchAsync)(taske_1.addUserTask));
+// تحديث حالة التاسك → فقط Admin/Administrator، و Task يجب أن تكون done
+route.put("/:taskId/:userId", (0, catchAsync_1.catchAsync)(taske_1.updateTaskStatus));
 exports.default = route;
