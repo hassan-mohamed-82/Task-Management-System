@@ -6,10 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateRejectedResonSchema = exports.createRejectedResonSchema = void 0;
 const joi_1 = __importDefault(require("joi"));
 exports.createRejectedResonSchema = joi_1.default.object({
-    reson: joi_1.default.string().required(),
+    reason: joi_1.default.string().required(),
     points: joi_1.default.number().required(),
 });
 exports.updateRejectedResonSchema = joi_1.default.object({
-    reson: joi_1.default.string().optional(),
+    reason: joi_1.default.string().optional(),
     points: joi_1.default.number().optional(),
 });

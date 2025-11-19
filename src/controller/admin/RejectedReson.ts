@@ -6,9 +6,9 @@ import { UnauthorizedError } from "../../Errors/unauthorizedError";
 import { SuccessResponse } from "../../utils/response";
 
 export const addRejectedReson = async (req: any, res: any) => {
-    const { reson , points } = req.body;
-    if (!reson || !points) throw new BadRequest("Reson and points is required");
-    const newRejectedReson = await RejectedReson.create({ reson, points });
+    const { reason , points } = req.body;
+    if (!reason || !points) throw new BadRequest("Reson and points is required");
+    const newRejectedReson = await RejectedReson.create({ reason, points });
  SuccessResponse(res, { message: "RejectedReson added successfully", newRejectedReson });
 };
 
@@ -33,8 +33,8 @@ export const deleteRejectedResonById = async (req: any, res: any) => {
 
 export const updateRejectedReson = async (req: any, res: any) => {
   const { id } = req.params;
-  const { reson, points } = req.body;
-  const RejectedResons = await RejectedReson.findByIdAndUpdate(id, { reson, points }, { new: true });
+  const { reason, points } = req.body;
+  const RejectedResons = await RejectedReson.findByIdAndUpdate(id, { reason, points }, { new: true });
   if (!RejectedResons) throw new NotFound("RejectedReson not found");
   SuccessResponse(res, { message: "RejectedReson updated successfully", RejectedResons });
 };

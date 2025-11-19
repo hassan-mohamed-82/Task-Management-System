@@ -6,10 +6,10 @@ const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
 const response_1 = require("../../utils/response");
 const addRejectedReson = async (req, res) => {
-    const { reson, points } = req.body;
-    if (!reson || !points)
+    const { reason, points } = req.body;
+    if (!reason || !points)
         throw new BadRequest_1.BadRequest("Reson and points is required");
-    const newRejectedReson = await RejectdReson_1.RejectedReson.create({ reson, points });
+    const newRejectedReson = await RejectdReson_1.RejectedReson.create({ reason, points });
     (0, response_1.SuccessResponse)(res, { message: "RejectedReson added successfully", newRejectedReson });
 };
 exports.addRejectedReson = addRejectedReson;
@@ -36,8 +36,8 @@ const deleteRejectedResonById = async (req, res) => {
 exports.deleteRejectedResonById = deleteRejectedResonById;
 const updateRejectedReson = async (req, res) => {
     const { id } = req.params;
-    const { reson, points } = req.body;
-    const RejectedResons = await RejectdReson_1.RejectedReson.findByIdAndUpdate(id, { reson, points }, { new: true });
+    const { reason, points } = req.body;
+    const RejectedResons = await RejectdReson_1.RejectedReson.findByIdAndUpdate(id, { reason, points }, { new: true });
     if (!RejectedResons)
         throw new NotFound_1.NotFound("RejectedReson not found");
     (0, response_1.SuccessResponse)(res, { message: "RejectedReson updated successfully", RejectedResons });
