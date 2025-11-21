@@ -4,6 +4,7 @@ import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { ProjectModel } from "../../models/schema/project";
 import { SubscriptionModel } from "../../models/schema/subscriptions";
+import { UserProjectModel } from "../../models/schema/User_Project";
 
 
 export const createProject = async (req: Request, res: Response) => {
@@ -48,6 +49,8 @@ export const createProject = async (req: Request, res: Response) => {
   subscription.websites_remaining_count = plan.projects_limit - subscription.websites_created_count;
   await subscription.save();
 
+  const useatproject = await UserProjectModel.create({ user_id: userId, project_id: newProject._id , role: "admin"});
+  
   return SuccessResponse(res, {
     message: "Project created successfully",
     project: newProject,

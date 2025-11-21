@@ -19,7 +19,7 @@ export const authorizeRoles = (...roles: string[]): RequestHandler => {
 export const checkProjectOrTaskRole = (allowedRoles: string[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?._id;
+      const userId = req.user?._id || req.user?.id;
       const role = req.user?.role ?? "";
 
       if (!userId) throw new UnauthorizedError("Unauthorized");
@@ -27,52 +27,87 @@ export const checkProjectOrTaskRole = (allowedRoles: string[]) => {
       // Admin bypass
       if (role.toLowerCase() === "admin") return next();
 
+      // Only user or admin
       if (role.toLowerCase() !== "user") {
         throw new UnauthorizedError("Only admin or user can access");
       }
 
+      console.log("⚡ Route Params:", req.params);
+
+      const { project_id, taskId } = req.params;
       let projectRole: string | null = null;
       let taskRole: string | null = null;
 
-      // 🔹 فقط تحقق من projectId لو موجود
-      if (req.params?.project_id && mongoose.Types.ObjectId.isValid(req.params.project_id)) {
-        const userProject = await UserProjectModel.findOne({
-          user_id: new mongoose.Types.ObjectId(userId),
-          project_id: new mongoose.Types.ObjectId(req.params.project_id),
-        });
-        projectRole = userProject?.role || null;
+      // --------------------------
+      // CHECK PROJECT ROLE
+      // --------------------------
+      if (project_id) {
+        if (!mongoose.Types.ObjectId.isValid(project_id)) {
+          console.log("❌ Invalid project_id:", project_id);
+        } else {
+          const userProject = await UserProjectModel.findOne({
+            user_id: userId,
+            project_id: project_id,
+          });
+
+          if (!userProject) {
+            console.log("❌ No UserProject found for:", {
+              user_id: userId,
+              project_id,
+            });
+          } else {
+            projectRole = userProject.role ?? null;
+          }
+        }
       }
 
-      // 🔹 فقط تحقق من taskId لو موجود
-      if (req.params?.taskId && mongoose.Types.ObjectId.isValid(req.params.taskId)) {
-        const userTask = await UserTaskModel.findOne({
-          user_id: new mongoose.Types.ObjectId(userId),
-          task_id: new mongoose.Types.ObjectId(req.params.taskId),
-        });
-        taskRole = userTask?.role || null;
+      // --------------------------
+      // CHECK TASK ROLE
+      // --------------------------
+      if (taskId) {
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+          console.log("❌ Invalid taskId:", taskId);
+        } else {
+          const userTask = await UserTaskModel.findOne({
+            user_id: userId,
+            task_id: taskId,
+          });
+
+          if (!userTask) {
+            console.log("❌ No UserTask found for:", {
+              user_id: userId,
+              task_id: taskId,
+            });
+          } else {
+            taskRole = userTask.role ?? null;
+          }
+        }
       }
 
-      // لو مفيش project ولا task → دخول بدون checks
-      if (!req.params?.project_id && !req.params?.taskId) {
+      // Allow endpoints without project or task
+      if (!project_id && !taskId) {
         return next();
       }
 
       const allowedRolesLower = allowedRoles.map(r => r.toLowerCase());
+
       const isAllowed =
         (projectRole && allowedRolesLower.includes(projectRole.toLowerCase())) ||
         (taskRole && allowedRolesLower.includes(taskRole.toLowerCase()));
 
-        console.log(isAllowed);
-        console.log(allowedRolesLower);
-        console.log(projectRole);
-        console.log(taskRole);
-      
-        if (!isAllowed) {
+      // --------------------------
+      // DEBUG
+      // --------------------------
+      console.log("🔍 Allowed roles:", allowedRolesLower);
+      console.log("🔍 User projectRole:", projectRole);
+      console.log("🔍 User taskRole:", taskRole);
+      console.log("🔍 isAllowed:", isAllowed);
+
+      if (!isAllowed) {
         throw new UnauthorizedError(
           `Access denied. Allowed roles: ${allowedRoles.join(", ")}`
         );
       }
-
 
       res.locals.userProjectRole = projectRole;
       res.locals.userTaskRole = taskRole;
