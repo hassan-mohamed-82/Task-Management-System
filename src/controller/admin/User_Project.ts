@@ -11,15 +11,24 @@ import {UserProjectModel} from '../../models/schema/User_Project';
 import { sendEmail } from '../../utils/sendEmails';
 
 export const addUserToProject = async (req: Request, res: Response) => {
-  const { user_id, project_id, role } = req.body;
-  const roles = role || "Member"; // اختر قيمة موجودة في enum
+  const { user_id, email, project_id, role } = req.body;
+  const roles = role || "Member";
 
-  if (!user_id || !project_id) {
-    throw new BadRequest("Missing required fields");
+  if (!project_id || (!user_id && !email)) {
+    throw new BadRequest("Missing required fields (user_id or email)");
   }
 
-  // Check user exists
-  const user = await User.findById(user_id);
+  // Find user (by ID or by Email)
+  let user;
+
+  if (user_id) {
+    user = await User.findById(user_id);
+  }
+
+  if (!user && email) {
+    user = await User.findOne({ email });
+  }
+
   if (!user) throw new NotFound("User not found");
 
   // Check project exists
@@ -27,21 +36,26 @@ export const addUserToProject = async (req: Request, res: Response) => {
   if (!project) throw new NotFound("Project not found");
 
   // Prevent duplication
-  const exists = await UserProjectModel.findOne({ user_id, project_id });
+  const exists = await UserProjectModel.findOne({
+    user_id: user._id,
+    project_id,
+  });
+
   if (exists) throw new BadRequest("User already added to this project");
 
   // Add user to project
   const userProject = await UserProjectModel.create({
-    user_id,
+    user_id: user._id,
     project_id,
-    email: user.email, // مهم
-    role: roles,       // لازم يكون enum صحيح
+    email: user.email,
+    role: roles,
   });
 
-    await sendEmail(
-      user.email,
-      `You have been added to the project: ${project.name}`,
-      `
+  // Send email
+  await sendEmail(
+    user.email,
+    `You have been added to the project: ${project.name}`,
+    `
 Hello ${user.name},
 
 You have been added to a new project.
@@ -52,14 +66,14 @@ Your Role: ${roles}
 Best regards,
 Task Management System
 `
-    );
- 
+  );
 
   SuccessResponse(res, {
     message: "User added to project successfully",
     userProject,
   });
 };
+
 
 
 export const getAllUsersInProject = async (req: Request, res: Response) => {

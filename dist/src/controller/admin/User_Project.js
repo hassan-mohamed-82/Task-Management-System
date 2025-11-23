@@ -13,13 +13,19 @@ const User_1 = require("../../models/schema/auth/User");
 const User_Project_1 = require("../../models/schema/User_Project");
 const sendEmails_1 = require("../../utils/sendEmails");
 const addUserToProject = async (req, res) => {
-    const { user_id, project_id, role } = req.body;
-    const roles = role || "Member"; // اختر قيمة موجودة في enum
-    if (!user_id || !project_id) {
-        throw new BadRequest_1.BadRequest("Missing required fields");
+    const { user_id, email, project_id, role } = req.body;
+    const roles = role || "Member";
+    if (!project_id || (!user_id && !email)) {
+        throw new BadRequest_1.BadRequest("Missing required fields (user_id or email)");
     }
-    // Check user exists
-    const user = await User_1.User.findById(user_id);
+    // Find user (by ID or by Email)
+    let user;
+    if (user_id) {
+        user = await User_1.User.findById(user_id);
+    }
+    if (!user && email) {
+        user = await User_1.User.findOne({ email });
+    }
     if (!user)
         throw new NotFound_1.NotFound("User not found");
     // Check project exists
@@ -27,16 +33,20 @@ const addUserToProject = async (req, res) => {
     if (!project)
         throw new NotFound_1.NotFound("Project not found");
     // Prevent duplication
-    const exists = await User_Project_1.UserProjectModel.findOne({ user_id, project_id });
+    const exists = await User_Project_1.UserProjectModel.findOne({
+        user_id: user._id,
+        project_id,
+    });
     if (exists)
         throw new BadRequest_1.BadRequest("User already added to this project");
     // Add user to project
     const userProject = await User_Project_1.UserProjectModel.create({
-        user_id,
+        user_id: user._id,
         project_id,
-        email: user.email, // مهم
-        role: roles, // لازم يكون enum صحيح
+        email: user.email,
+        role: roles,
     });
+    // Send email
     await (0, sendEmails_1.sendEmail)(user.email, `You have been added to the project: ${project.name}`, `
 Hello ${user.name},
 
