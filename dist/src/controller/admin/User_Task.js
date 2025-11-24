@@ -144,11 +144,23 @@ const getAllUserTask = async (req, res) => {
     if (!task)
         throw new NotFound_1.NotFound("Task not found");
     // جلب جميع اليوزرز المرتبطين بالتاسك
-    const userTasks = await User_Task_1.UserTaskModel.find({ task_id: id }).populate("user_id", "name email role");
-    // "name email role" = الحقول اللي عايز تجيبها من اليوزر
+    const userTasks = await User_Task_1.UserTaskModel.find({ task_id: id })
+        .populate("user_id", "name email role");
+    // هنا هترجع كل user مع id الـ UserTask
+    const usersWithUserTaskId = userTasks.map(ut => ({
+        userTaskId: ut._id, // id الخاص بالـ UserTask
+        user: ut.user_id // بيانات اليوزر
+    }));
     return (0, response_1.SuccessResponse)(res, {
         message: "User tasks fetched successfully",
-        users: userTasks.map(ut => ut.user_id), // هنا هترجع بيانات اليوزر فقط
+        users: usersWithUserTaskId,
     });
 };
 exports.getAllUserTask = getAllUserTask;
+// export const getalluser_task=async(req: Request, res: Response) =>{
+//     const currentRole = String((req.user as any)?.role || "").toLowerCase();
+//   if (!["admin", "teamlead"].includes(currentRole)) {
+//     throw new UnauthorizedError("Only Admin or TeamLead can view user tasks");
+//   }
+//   const 
+// }
