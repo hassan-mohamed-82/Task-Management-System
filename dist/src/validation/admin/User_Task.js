@@ -9,4 +9,5 @@ exports.createUserTaskSchema = joi_1.default.object({
     user_id: joi_1.default.string().required(),
     task_id: joi_1.default.string().required(),
     role: joi_1.default.string().valid('Member', 'Membercanapprove'),
+    user_taskId: joi_1.default.array().items(joi_1.default.string()).optional()
 });
