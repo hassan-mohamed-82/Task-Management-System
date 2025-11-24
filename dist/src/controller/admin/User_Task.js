@@ -119,11 +119,11 @@ const removedUserFromTask = async (req, res) => {
         throw new unauthorizedError_1.UnauthorizedError("Only Admin or TeamLead can remove users from task");
     }
     // استخراج IDs من params
-    const { taskId, userId } = req.params;
+    const { user_id, task_id } = req.params;
     // البحث وحذف السطر الذي يربط هذا المستخدم بهذه المهمة
     const deletedUserTask = await User_Task_1.UserTaskModel.findOneAndDelete({
-        task: taskId,
-        user: userId
+        task_id,
+        user_id
     });
     if (!deletedUserTask) {
         throw new NotFound_1.NotFound("This user is not assigned to this task");

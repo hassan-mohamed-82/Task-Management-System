@@ -141,13 +141,13 @@ export const removedUserFromTask = async (req: Request, res: Response) => {
   }
 
   // استخراج IDs من params
-  const { taskId, userId } = req.params;
+  const { user_id, task_id } = req.params;
 
   // البحث وحذف السطر الذي يربط هذا المستخدم بهذه المهمة
   const deletedUserTask = await UserTaskModel.findOneAndDelete({
-    task: taskId,
-    user: userId
-  });
+     task_id,
+    user_id 
+   });
 
   if (!deletedUserTask) {
     throw new NotFound("This user is not assigned to this task");

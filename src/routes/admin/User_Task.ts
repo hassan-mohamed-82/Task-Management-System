@@ -7,6 +7,6 @@ const route = Router();
 route.post("/",validate(createUserTaskSchema) ,catchAsync(addUserToTask));
 route.put("/:id" ,catchAsync(updateUserTaskStatus));
 route.put("/role/:id" ,catchAsync(updaterole));
-route.delete("/:taskId/:userId", catchAsync(removedUserFromTask));
+route.delete("/:user_id/:task_id", catchAsync(removedUserFromTask));
 route.get("/:id", catchAsync(getAllUserTask));
 export default route;

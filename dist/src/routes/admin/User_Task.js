@@ -9,6 +9,6 @@ const route = (0, express_1.Router)();
 route.post("/", (0, validation_1.validate)(User_Task_2.createUserTaskSchema), (0, catchAsync_1.catchAsync)(User_Task_1.addUserToTask));
 route.put("/:id", (0, catchAsync_1.catchAsync)(User_Task_1.updateUserTaskStatus));
 route.put("/role/:id", (0, catchAsync_1.catchAsync)(User_Task_1.updaterole));
-route.delete("/:taskId/:userId", (0, catchAsync_1.catchAsync)(User_Task_1.removedUserFromTask));
+route.delete("/:user_id/:task_id", (0, catchAsync_1.catchAsync)(User_Task_1.removedUserFromTask));
 route.get("/:id", (0, catchAsync_1.catchAsync)(User_Task_1.getAllUserTask));
 exports.default = route;
