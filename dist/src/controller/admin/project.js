@@ -43,7 +43,12 @@ const createProject = async (req, res) => {
     subscription.websites_created_count = currentProjectsCount + 1;
     subscription.websites_remaining_count = plan.projects_limit - subscription.websites_created_count;
     await subscription.save();
-    const useatproject = await User_Project_1.UserProjectModel.create({ user_id: userId, project_id: newProject._id, role: "admin" });
+    const useatproject = await User_Project_1.UserProjectModel.create({
+        user_id: userId,
+        project_id: newProject._id,
+        role: "admin",
+        email: req.user.email
+    });
     return (0, response_1.SuccessResponse)(res, {
         message: "Project created successfully",
         project: newProject,
