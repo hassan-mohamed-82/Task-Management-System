@@ -171,14 +171,15 @@ export const getAllUserTask = async (req: Request, res: Response) => {
   const task = await TaskModel.findById(id);
   if (!task) throw new NotFound("Task not found");
 
-  // جلب جميع اليوزرز المرتبطين بالتاسك
   const userTasks = await UserTaskModel.find({ task_id: id })
-    .populate("user_id", "name email role"); 
+    .populate("user_id", "name email role"); // role هنا هو role اليوزر العادي
 
-  // هنا هترجع كل user مع id الـ UserTask
   const usersWithUserTaskId = userTasks.map(ut => ({
-    userTaskId: ut._id,  // id الخاص بالـ UserTask
-    user: ut.user_id      // بيانات اليوزر
+    userTaskId: ut._id,
+    user: ut.user_id,  
+    roleInsideTask: ut.role,              // 👈 أضفنا الرول داخل التاسك
+    status: ut.status,                    // لو محتاج الحالة
+    is_finished: ut.is_finished           // لو محتاج الفينيش
   }));
 
   return SuccessResponse(res, {
@@ -186,6 +187,7 @@ export const getAllUserTask = async (req: Request, res: Response) => {
     users: usersWithUserTaskId,
   });
 };
+
 
 
 
