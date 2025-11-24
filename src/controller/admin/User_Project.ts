@@ -100,7 +100,7 @@ export const deleteUserFromProject = async (req: Request, res: Response) => {
 
   return SuccessResponse(res, { message: "User removed from project successfully", userProject });
 };
-
+ 
 export const updateUserRole = async (req: Request, res: Response) => {
     const { user_id, project_id } = req.params;
   const { role } = req.body;
