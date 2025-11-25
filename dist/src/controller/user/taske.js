@@ -22,14 +22,19 @@ const getalltaskatprojectforuser = async (req, res) => {
         throw new BadRequest_1.BadRequest("Invalid project ID");
     }
     const tasks = await User_Task_1.UserTaskModel.find({
-        user_id: user,
-        task_id: { $in: [project_id] },
+        user_id: user
     })
-        .populate("user_id", "name email")
-        .populate("task_id", "name");
+        .populate({
+        path: "task_id",
+        match: { project_id: project_id }, // ← هنا الفلترة
+        select: "name project_id"
+    })
+        .populate("user_id", "name email");
+    // إزالة النتائج اللي task_id = null بسبب الفلترة
+    const filteredTasks = tasks.filter(t => t.task_id != null);
     return (0, response_1.SuccessResponse)(res, {
         message: "Tasks fetched successfully",
-        tasks,
+        tasks: filteredTasks,
     });
 };
 exports.getalltaskatprojectforuser = getalltaskatprojectforuser;

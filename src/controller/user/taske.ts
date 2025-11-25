@@ -13,26 +13,33 @@ import { sendEmail } from "../../utils/sendEmails";
 import { UserRejectedReason } from "../../models/schema/User_Rejection";
 
 export const getalltaskatprojectforuser = async (req: Request, res: Response) => {
-    const user = req.user?._id;
-    if (!user) throw new BadRequest("User ID is required");
-    const { project_id } = req.params;
-    if (!project_id) throw new BadRequest("Project ID is required");
+  const user = req.user?._id;
+  if (!user) throw new BadRequest("User ID is required");
 
-    if (!mongoose.Types.ObjectId.isValid(project_id)) {
-        throw new BadRequest("Invalid project ID");
-    }
+  const { project_id } = req.params;
+  if (!project_id) throw new BadRequest("Project ID is required");
 
-    const tasks = await UserTaskModel.find({
-        user_id: user,
-        task_id: { $in: [project_id] },
-    })
-        .populate("user_id", "name email")
-        .populate("task_id", "name");
+  if (!mongoose.Types.ObjectId.isValid(project_id)) {
+    throw new BadRequest("Invalid project ID");
+  }
 
-    return SuccessResponse(res, {
-        message: "Tasks fetched successfully",
-        tasks,
-    });
+  const tasks = await UserTaskModel.find({
+    user_id: user
+  })
+  .populate({
+      path: "task_id",
+      match: { project_id: project_id },  // ← هنا الفلترة
+      select: "name project_id"
+  })
+  .populate("user_id", "name email");
+
+  // إزالة النتائج اللي task_id = null بسبب الفلترة
+  const filteredTasks = tasks.filter(t => t.task_id != null);
+
+  return SuccessResponse(res, {
+    message: "Tasks fetched successfully",
+    tasks: filteredTasks,
+  });
 };
 
 
