@@ -12,8 +12,8 @@ const User_1 = require("../../models/schema/auth/User");
 const User_Task_1 = require("../../models/schema/User_Task");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
 const getalltaskatprojectforuser = async (req, res) => {
-    const user = req.user?._id;
-    if (!user)
+    const userId = req.user?._id;
+    if (!userId)
         throw new BadRequest_1.BadRequest("User ID is required");
     const { project_id } = req.params;
     if (!project_id)
@@ -22,7 +22,7 @@ const getalltaskatprojectforuser = async (req, res) => {
         throw new BadRequest_1.BadRequest("Invalid project ID");
     }
     const tasks = await User_Task_1.UserTaskModel.find({
-        user_id: user
+        user_id: userId
     })
         .populate({
         path: "task_id",

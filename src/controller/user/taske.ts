@@ -13,8 +13,8 @@ import { sendEmail } from "../../utils/sendEmails";
 import { UserRejectedReason } from "../../models/schema/User_Rejection";
 
 export const getalltaskatprojectforuser = async (req: Request, res: Response) => {
-  const user = req.user?._id;
-  if (!user) throw new BadRequest("User ID is required");
+  const userId = req.user?._id;
+  if (!userId) throw new BadRequest("User ID is required");
 
   const { project_id } = req.params;
   if (!project_id) throw new BadRequest("Project ID is required");
@@ -24,7 +24,7 @@ export const getalltaskatprojectforuser = async (req: Request, res: Response) =>
   }
 
   const tasks = await UserTaskModel.find({
-    user_id: user
+    user_id: userId
   })
   .populate({
       path: "task_id",
