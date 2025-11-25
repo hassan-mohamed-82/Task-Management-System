@@ -6,5 +6,5 @@ const catchAsync_1 = require("../../utils/catchAsync");
 const authorized_1 = require("../../middlewares/authorized");
 const route = (0, express_1.Router)();
 route.put("/:taskId", (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "Member", "Membercanapprove", "admin"]), (0, catchAsync_1.catchAsync)(taske_1.updateUserTaskStatus));
-route.get("/:project_id", (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "Member", "Membercanapprove", "admin"]), (0, catchAsync_1.catchAsync)(taske_1.getalltaskatprojectforuser));
+route.get("/:projectId", (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "Member", "Membercanapprove", "admin"]), (0, catchAsync_1.catchAsync)(taske_1.getalltaskatprojectforuser));
 exports.default = route;
