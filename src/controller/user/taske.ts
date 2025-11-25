@@ -17,7 +17,7 @@ export const getalltaskatprojectforuser = async (req: Request, res: Response) =>
     const currentRole = String((req.user as any)?.role || '').toLowerCase();
 
   if (!["admin", "teamlead", "Member", "Membercanapprove"].includes(currentRole)) {
-    throw new UnauthorizedError("Only Admin or TeamLead can update task status");
+    throw new UnauthorizedError("Only Admin or TeamLead or Member or Membercanapprove can update task status");
   }
     if (!user) throw new BadRequest("User ID is required");
     const { projectId } = req.params;
@@ -46,7 +46,7 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   const currentRole = String((req.user as any)?.role || '').toLowerCase();
 
   if (!["admin", "teamlead", "Member", "Membercanapprove"].includes(currentRole)) {
-    throw new UnauthorizedError("Only Admin or TeamLead can update task status");
+    throw new UnauthorizedError("Only Admin or TeamLead   or Member or Membercanapprove can update task status");
   }
   const { taskId } = req.params;
   if (!taskId) throw new BadRequest("Task ID is required");
