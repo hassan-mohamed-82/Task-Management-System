@@ -14,6 +14,11 @@ import { UserRejectedReason } from "../../models/schema/User_Rejection";
 
 export const getalltaskatprojectforuser = async (req: Request, res: Response) => {
     const user = req.user?._id;
+    const currentRole = String((req.user as any)?.role || '').toLowerCase();
+
+  if (!["admin", "teamlead", "member", "membercanapprove"].includes(currentRole)) {
+    throw new UnauthorizedError("Only Admin or TeamLead can update task status");
+  }
     if (!user) throw new BadRequest("User ID is required");
     const { projectId } = req.params;
     if (!projectId) throw new BadRequest("Project ID is required");
@@ -38,8 +43,11 @@ export const getalltaskatprojectforuser = async (req: Request, res: Response) =>
 
 export const updateUserTaskStatus = async (req: Request, res: Response) => {
   const userId = req.user?._id;
-  if (!userId) throw new BadRequest("User ID is required");
+  const currentRole = String((req.user as any)?.role || '').toLowerCase();
 
+  if (!["admin", "teamlead", "member", "membercanapprove"].includes(currentRole)) {
+    throw new UnauthorizedError("Only Admin or TeamLead can update task status");
+  }
   const { taskId } = req.params;
   if (!taskId) throw new BadRequest("Task ID is required");
 

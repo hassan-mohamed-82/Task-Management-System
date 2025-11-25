@@ -7,12 +7,17 @@ exports.updateUserTaskStatus = exports.getalltaskatprojectforuser = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
+const unauthorizedError_1 = require("../../Errors/unauthorizedError");
 const response_1 = require("../../utils/response");
 const User_1 = require("../../models/schema/auth/User");
 const User_Task_1 = require("../../models/schema/User_Task");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
 const getalltaskatprojectforuser = async (req, res) => {
     const user = req.user?._id;
+    const currentRole = String(req.user?.role || '').toLowerCase();
+    if (!["admin", "teamlead", "member", "membercanapprove"].includes(currentRole)) {
+        throw new unauthorizedError_1.UnauthorizedError("Only Admin or TeamLead can update task status");
+    }
     if (!user)
         throw new BadRequest_1.BadRequest("User ID is required");
     const { projectId } = req.params;
@@ -35,8 +40,10 @@ const getalltaskatprojectforuser = async (req, res) => {
 exports.getalltaskatprojectforuser = getalltaskatprojectforuser;
 const updateUserTaskStatus = async (req, res) => {
     const userId = req.user?._id;
-    if (!userId)
-        throw new BadRequest_1.BadRequest("User ID is required");
+    const currentRole = String(req.user?.role || '').toLowerCase();
+    if (!["admin", "teamlead", "member", "membercanapprove"].includes(currentRole)) {
+        throw new unauthorizedError_1.UnauthorizedError("Only Admin or TeamLead can update task status");
+    }
     const { taskId } = req.params;
     if (!taskId)
         throw new BadRequest_1.BadRequest("Task ID is required");
