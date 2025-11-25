@@ -15,7 +15,7 @@ const User_Rejection_1 = require("../../models/schema/User_Rejection");
 const getalltaskatprojectforuser = async (req, res) => {
     const user = req.user?._id;
     const currentRole = String(req.user?.role || '').toLowerCase();
-    if (!["admin", "teamlead", "member", "membercanapprove"].includes(currentRole)) {
+    if (!["admin", "teamlead", "Member", "Membercanapprove"].includes(currentRole)) {
         throw new unauthorizedError_1.UnauthorizedError("Only Admin or TeamLead can update task status");
     }
     if (!user)
@@ -41,7 +41,7 @@ exports.getalltaskatprojectforuser = getalltaskatprojectforuser;
 const updateUserTaskStatus = async (req, res) => {
     const userId = req.user?._id;
     const currentRole = String(req.user?.role || '').toLowerCase();
-    if (!["admin", "teamlead", "member", "membercanapprove"].includes(currentRole)) {
+    if (!["admin", "teamlead", "Member", "Membercanapprove"].includes(currentRole)) {
         throw new unauthorizedError_1.UnauthorizedError("Only Admin or TeamLead can update task status");
     }
     const { taskId } = req.params;
