@@ -10,6 +10,7 @@ const User_1 = require("../../models/schema/auth/User");
 const User_Project_1 = require("../../models/schema/User_Project");
 const User_Task_1 = require("../../models/schema/User_Task");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
+const RejectdReson_1 = require("../../models/schema/RejectdReson");
 const addUserToTask = async (req, res) => {
     const { user_id, task_id, role, User_taskId } = req.body;
     if (!user_id || !task_id)
@@ -70,13 +71,17 @@ const updateUserTaskStatus = async (req, res) => {
     const { status, rejection_reasonId } = req.body;
     if (!id)
         throw new BadRequest_1.BadRequest("Task ID is required");
-    const userTask = await User_Task_1.UserTaskModel.findOne({ _id: id });
+    const userTask = await User_Task_1.UserTaskModel.findById(id);
     if (!userTask)
         throw new NotFound_1.NotFound("UserTask not found");
     const allowedStatuses = ["Approved from Member_can_approve", "done"];
     if (status === "rejected") {
         if (!rejection_reasonId)
             throw new BadRequest_1.BadRequest("Rejection reason is required");
+        // جلب سبب الرفض من قاعدة البيانات للتأكد من صحته
+        const rejectionReason = await RejectdReson_1.RejectedReson.findById(rejection_reasonId);
+        if (!rejectionReason)
+            throw new NotFound_1.NotFound("Rejection reason not found");
         // سجل سبب الرفض
         await User_Rejection_1.UserRejectedReason.create({
             userId,
@@ -89,9 +94,10 @@ const updateUserTaskStatus = async (req, res) => {
         }
         // تحديث حالة المهمة الحالية
         userTask.status = "rejected";
-        const pointsuser = await User_1.User.findOne({ _id: userTask.user_id });
+        // تحديث نقاط المستخدم مع التحقق من الرقم
+        const pointsuser = await User_1.User.findById(userTask.user_id);
         if (pointsuser) {
-            pointsuser.totalRejectedPoints = pointsuser.totalRejectedPoints + rejection_reasonId.points;
+            pointsuser.totalRejectedPoints = (pointsuser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
             await pointsuser.save();
         }
     }

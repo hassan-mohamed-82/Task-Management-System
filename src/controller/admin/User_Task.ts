@@ -11,6 +11,7 @@ import {UserProjectModel} from '../../models/schema/User_Project';
 import { sendEmail } from '../../utils/sendEmails';
 import { UserTaskModel } from '../../models/schema/User_Task';
 import { UserRejectedReason } from '../../models/schema/User_Rejection';
+import { RejectedReson } from '../../models/schema/RejectdReson';
 
 export const addUserToTask = async (req: Request, res: Response) => {
 
@@ -67,7 +68,7 @@ export const updaterole = async (req: Request, res: Response) => {
   SuccessResponse(res, { message: "User role updated successfully", userTask });
  }
 
-export const updateUserTaskStatus = async (req: Request, res: Response) => {
+export const updateUserTaskStatus = async (req: Request, res: Response) => { 
   const userId = req.user?._id;
   const currentRole = String((req.user as any)?.role || '').toLowerCase();
 
@@ -80,14 +81,17 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
 
   if (!id) throw new BadRequest("Task ID is required");
 
-
-  const userTask = await UserTaskModel.findOne({ _id: id });
+  const userTask = await UserTaskModel.findById(id);
   if (!userTask) throw new NotFound("UserTask not found");
 
   const allowedStatuses = ["Approved from Member_can_approve", "done"];
 
   if (status === "rejected") {
     if (!rejection_reasonId) throw new BadRequest("Rejection reason is required");
+
+    // جلب سبب الرفض من قاعدة البيانات للتأكد من صحته
+    const rejectionReason = await RejectedReson.findById(rejection_reasonId);
+    if (!rejectionReason) throw new NotFound("Rejection reason not found");
 
     // سجل سبب الرفض
     await UserRejectedReason.create({
@@ -106,9 +110,11 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
 
     // تحديث حالة المهمة الحالية
     userTask.status = "rejected";
-    const pointsuser = await User.findOne({ _id: userTask.user_id });
+
+    // تحديث نقاط المستخدم مع التحقق من الرقم
+    const pointsuser = await User.findById(userTask.user_id);
     if (pointsuser) {
-      pointsuser.totalRejectedPoints = pointsuser.totalRejectedPoints + rejection_reasonId.points;
+      pointsuser.totalRejectedPoints = (pointsuser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
       await pointsuser.save();
     }
 
@@ -117,8 +123,10 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
     if (!userTask.status || !allowedStatuses.includes(userTask.status)) {
       throw new BadRequest(`Cannot change status. Current status must be ${allowedStatuses.join(" or ")}`);
     }
+
     userTask.status = status;
-      if (status === "approved" || status === "done") {
+
+    if (status === "approved" || status === "done") {
       userTask.is_finished = true;
     }
   }
@@ -128,11 +136,8 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   SuccessResponse(res, {
     message: "UserTask status updated successfully",
     userTask
-    
   });
 };
-
-
 export const removedUserFromTask = async (req: Request, res: Response) => {
   // استخراج بيانات المستخدم الحالي
   const currentRole = String((req.user as any)?.role || "").toLowerCase();
