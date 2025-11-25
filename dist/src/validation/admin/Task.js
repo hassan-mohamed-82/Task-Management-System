@@ -12,8 +12,6 @@ exports.createTaskSchema = joi_1.default.object({
     end_date: joi_1.default.date().optional(),
     priority: joi_1.default.string().valid('low', 'medium', 'high').optional(),
     status: joi_1.default.string().valid('Pending', 'in_progress', 'done', 'Approved', 'rejected').default('Pending'),
-    recorde: joi_1.default.string().optional(),
-    file: joi_1.default.string().optional(),
     Depatment_id: joi_1.default.string().optional(),
     userId: joi_1.default.string().optional(),
 });
@@ -24,7 +22,5 @@ exports.updateTaskSchema = joi_1.default.object({
     end_date: joi_1.default.date().optional(),
     priority: joi_1.default.string().valid('low', 'medium', 'high').optional(),
     status: joi_1.default.string().valid('Pending', 'in_progress', 'done', 'Approved', 'rejected').optional(),
-    recorde: joi_1.default.string().optional(),
-    file: joi_1.default.string().optional(),
     Depatment_id: joi_1.default.string().optional(),
 });

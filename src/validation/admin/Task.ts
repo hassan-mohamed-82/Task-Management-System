@@ -7,11 +7,10 @@ export const createTaskSchema = Joi.object({
     end_date: Joi.date().optional(),
     priority: Joi.string().valid('low', 'medium', 'high').optional(),
     status: Joi.string().valid('Pending', 'in_progress', 'done','Approved' ,'rejected').default('Pending'),
-    recorde:Joi.string().optional(),
-    file:Joi.string().optional(),
-    Depatment_id:Joi.string().optional(),
+    Depatment_id: Joi.string().optional(),
     userId: Joi.string().optional(),
 });
+
 
 export const updateTaskSchema = Joi.object({
     name: Joi.string().optional(),
@@ -20,8 +19,6 @@ export const updateTaskSchema = Joi.object({
     end_date: Joi.date().optional(),
     priority: Joi.string().valid('low', 'medium', 'high').optional(),
     status: Joi.string().valid('Pending', 'in_progress', 'done','Approved' ,'rejected').optional(),
-    recorde:Joi.string().optional(),
-    file:Joi.string().optional(),
     Depatment_id:Joi.string().optional(),
     
 });
