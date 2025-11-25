@@ -15,16 +15,16 @@ import { UserRejectedReason } from "../../models/schema/User_Rejection";
 export const getalltaskatprojectforuser = async (req: Request, res: Response) => {
     const user = req.user?._id;
     if (!user) throw new BadRequest("User ID is required");
-    const { projectId } = req.params;
-    if (!projectId) throw new BadRequest("Project ID is required");
+    const { project_id } = req.params;
+    if (!project_id) throw new BadRequest("Project ID is required");
 
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    if (!mongoose.Types.ObjectId.isValid(project_id)) {
         throw new BadRequest("Invalid project ID");
     }
 
     const tasks = await UserTaskModel.find({
         user_id: user,
-        task_id: { $in: [projectId] },
+        task_id: { $in: [project_id] },
     })
         .populate("user_id", "name email")
         .populate("task_id", "name");
