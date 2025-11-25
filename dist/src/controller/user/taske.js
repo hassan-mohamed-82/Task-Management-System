@@ -12,8 +12,8 @@ const User_1 = require("../../models/schema/auth/User");
 const User_Task_1 = require("../../models/schema/User_Task");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
 const getalltaskatprojectforuser = async (req, res) => {
-    const userId = req.user?._id;
-    if (!userId)
+    const user = req.user?._id;
+    if (!user)
         throw new BadRequest_1.BadRequest("User ID is required");
     const { project_id } = req.params;
     if (!project_id)
@@ -22,19 +22,14 @@ const getalltaskatprojectforuser = async (req, res) => {
         throw new BadRequest_1.BadRequest("Invalid project ID");
     }
     const tasks = await User_Task_1.UserTaskModel.find({
-        user_id: userId
+        user_id: user,
+        task_id: { $in: [project_id] },
     })
-        .populate({
-        path: "task_id",
-        match: { project_id: project_id }, // ← هنا الفلترة
-        select: "name project_id"
-    })
-        .populate("user_id", "name email");
-    // إزالة النتائج اللي task_id = null بسبب الفلترة
-    const filteredTasks = tasks.filter(t => t.task_id != null);
+        .populate("user_id", "name email")
+        .populate("task_id", "name");
     return (0, response_1.SuccessResponse)(res, {
         message: "Tasks fetched successfully",
-        tasks: filteredTasks,
+        tasks,
     });
 };
 exports.getalltaskatprojectforuser = getalltaskatprojectforuser;
