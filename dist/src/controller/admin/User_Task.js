@@ -70,7 +70,7 @@ const updateUserTaskStatus = async (req, res) => {
     const { id } = req.params; // UserTask ID
     const { status, rejection_reasonId } = req.body;
     if (!id)
-        throw new BadRequest_1.BadRequest("Task ID is required");
+        throw new BadRequest_1.BadRequest("UserTask ID is required");
     const userTask = await User_Task_1.UserTaskModel.findById(id);
     if (!userTask)
         throw new NotFound_1.NotFound("UserTask not found");
@@ -86,7 +86,7 @@ const updateUserTaskStatus = async (req, res) => {
         await User_Rejection_1.UserRejectedReason.create({
             userId,
             reasonId: rejection_reasonId,
-            taskId: id
+            taskId: userTask.task_id,
         });
         // تحويل جميع الـ hg status المرتبطة إلى pending_edit
         if (userTask.User_taskId && userTask.User_taskId.length > 0) {
