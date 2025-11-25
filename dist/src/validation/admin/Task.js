@@ -14,6 +14,8 @@ exports.createTaskSchema = joi_1.default.object({
     status: joi_1.default.string().valid('Pending', 'in_progress', 'done', 'Approved', 'rejected').default('Pending'),
     Depatment_id: joi_1.default.string().optional(),
     userId: joi_1.default.string().optional(),
+    file: joi_1.default.any().optional(),
+    recorde: joi_1.default.any().optional(),
 });
 exports.updateTaskSchema = joi_1.default.object({
     name: joi_1.default.string().optional(),
@@ -23,4 +25,6 @@ exports.updateTaskSchema = joi_1.default.object({
     priority: joi_1.default.string().valid('low', 'medium', 'high').optional(),
     status: joi_1.default.string().valid('Pending', 'in_progress', 'done', 'Approved', 'rejected').optional(),
     Depatment_id: joi_1.default.string().optional(),
+    file: joi_1.default.any().optional(),
+    recorde: joi_1.default.any().optional(),
 });
