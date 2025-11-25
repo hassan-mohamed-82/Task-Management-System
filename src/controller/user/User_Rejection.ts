@@ -25,7 +25,7 @@ export const getuserRejection = async (req: Request, res: Response) => {
     },
     { $unwind: "$reasonId" },
 
-    // Populate userId
+    // Populate userId without password
     {
       $lookup: {
         from: "users",
@@ -35,6 +35,19 @@ export const getuserRejection = async (req: Request, res: Response) => {
       }
     },
     { $unwind: "$userId" },
+    {
+      $project: {
+        "reasonId": 1,
+        "taskId": 1,
+        "userId._id": 1,
+        "userId.name": 1,
+        "userId.email": 1,
+        "userId.photo": 1,
+        "createdAt": 1,
+        "updatedAt": 1
+        // كلمة السر مش موجودة هنا → ما هتظهرش
+      }
+    },
 
     // Populate taskId
     {
@@ -53,6 +66,7 @@ export const getuserRejection = async (req: Request, res: Response) => {
     userRejection
   });
 };
+
 
 export const getUserRejectionById = async (req: Request, res: Response) => {
   const userId = req.user?._id;

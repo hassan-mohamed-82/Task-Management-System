@@ -89,18 +89,15 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   if (status === "rejected") {
     if (!rejection_reasonId) throw new BadRequest("Rejection reason is required");
 
-    // جلب سبب الرفض من قاعدة البيانات للتأكد من صحته
     const rejectionReason = await RejectedReson.findById(rejection_reasonId);
     if (!rejectionReason) throw new NotFound("Rejection reason not found");
 
-    // سجل سبب الرفض
     await UserRejectedReason.create({
       userId,
       reasonId: rejection_reasonId,
       taskId: userTask.task_id,
     });
 
-    // تحويل جميع الـ hg status المرتبطة إلى pending_edit
     if (userTask.User_taskId && userTask.User_taskId.length > 0) {
       await UserTaskModel.updateMany(
         { _id: { $in: userTask.User_taskId } },
@@ -108,26 +105,32 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
       );
     }
 
-    // تحديث حالة المهمة الحالية
     userTask.status = "rejected";
 
-    // تحديث نقاط المستخدم مع التحقق من الرقم
     const pointsuser = await User.findById(userTask.user_id);
     if (pointsuser) {
       pointsuser.totalRejectedPoints = (pointsuser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
       await pointsuser.save();
     }
 
+    // تحديث الـ Task الرئيسي
+    await TaskModel.findByIdAndUpdate(userTask.task_id, {
+      status: "rejected",
+    });
+
   } else {
-    // التحقق من الحالة الحالية قبل السماح بالتغيير
     if (!userTask.status || !allowedStatuses.includes(userTask.status)) {
       throw new BadRequest(`Cannot change status. Current status must be ${allowedStatuses.join(" or ")}`);
     }
 
     userTask.status = status;
-
     if (status === "approved" || status === "done") {
       userTask.is_finished = true;
+
+      // تحديث الـ Task الرئيسي
+      await TaskModel.findByIdAndUpdate(userTask.task_id, {
+        status: status,
+      });
     }
   }
 
@@ -138,6 +141,7 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
     userTask
   });
 };
+
 export const removedUserFromTask = async (req: Request, res: Response) => {
   // استخراج بيانات المستخدم الحالي
   const currentRole = String((req.user as any)?.role || "").toLowerCase();
