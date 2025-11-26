@@ -38,5 +38,6 @@ const mongoose_1 = __importStar(require("mongoose"));
 const RejectdResonSchema = new mongoose_1.Schema({
     reason: { type: String, required: true },
     points: { type: Number, required: true },
+    createdBy: { type: mongoose_1.default.Schema.Types.ObjectId, ref: "User", required: true },
 }, { timestamps: true });
 exports.RejectedReson = mongoose_1.default.model('RejectedReson', RejectdResonSchema);

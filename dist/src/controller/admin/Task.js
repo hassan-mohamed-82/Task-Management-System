@@ -138,15 +138,27 @@ exports.getTaskById = getTaskById;
 // UPDATE TASK
 // --------------------------
 const updateTask = async (req, res) => {
-    const user = req.user;
-    if (!user)
-        throw new unauthorizedError_1.UnauthorizedError('Access denied.');
+    const userId = req.user?._id;
+    if (!userId)
+        throw new unauthorizedError_1.UnauthorizedError("Access denied.");
     const { id } = req.params;
     if (!mongoose_1.default.Types.ObjectId.isValid(id))
-        throw new BadRequest_1.BadRequest('Invalid Task ID');
+        throw new BadRequest_1.BadRequest("Invalid Task ID");
     const task = await Tasks_1.TaskModel.findById(id);
     if (!task)
-        throw new NotFound_1.NotFound('Task not found');
+        throw new NotFound_1.NotFound("Task not found");
+    // تحقق من أن المستخدم جزء من نفس المشروع
+    const userProject = await User_Project_1.UserProjectModel.findOne({
+        user_id: userId,
+        project_id: task.projectId
+    });
+    if (!userProject)
+        throw new unauthorizedError_1.UnauthorizedError("You are not assigned to this project");
+    const role = (userProject.role || '').toLowerCase();
+    // فقط admin + teamlead يسمح لهم بالتعديل
+    if (!["admin", "teamlead"].includes(role))
+        throw new unauthorizedError_1.UnauthorizedError("You don't have permission to update this task");
+    // تحديث البيانات
     const updates = req.body;
     if (req.file)
         updates.file = req.file.path;
@@ -154,22 +166,37 @@ const updateTask = async (req, res) => {
         updates.recorde = req.body.recorde;
     Object.assign(task, updates);
     await task.save();
-    (0, response_1.SuccessResponse)(res, { message: 'Task updated successfully', task });
+    (0, response_1.SuccessResponse)(res, {
+        message: "Task updated successfully",
+        task
+    });
 };
 exports.updateTask = updateTask;
 // --------------------------
 // DELETE TASK
 // --------------------------
 const deleteTask = async (req, res) => {
-    const user = req.user;
-    if (!user)
-        throw new unauthorizedError_1.UnauthorizedError('Access denied.');
+    const userId = req.user?._id;
+    if (!userId)
+        throw new unauthorizedError_1.UnauthorizedError("Access denied.");
     const { id } = req.params;
     if (!mongoose_1.default.Types.ObjectId.isValid(id))
-        throw new BadRequest_1.BadRequest('Invalid Task ID');
-    const task = await Tasks_1.TaskModel.findByIdAndDelete(id);
+        throw new BadRequest_1.BadRequest("Invalid Task ID");
+    const task = await Tasks_1.TaskModel.findById(id);
     if (!task)
-        throw new NotFound_1.NotFound('Task not found');
-    (0, response_1.SuccessResponse)(res, { message: 'Task deleted successfully' });
+        throw new NotFound_1.NotFound("Task not found");
+    // تحقق من الانتماء للمشروع
+    const userProject = await User_Project_1.UserProjectModel.findOne({
+        user_id: userId,
+        project_id: task.projectId
+    });
+    if (!userProject)
+        throw new unauthorizedError_1.UnauthorizedError("You are not assigned to this project");
+    const role = (userProject.role || '').toLowerCase();
+    // فقط admin + teamlead يسمح لهم بالحذف
+    if (!["admin", "teamlead"].includes(role))
+        throw new unauthorizedError_1.UnauthorizedError("You don't have permission to delete this task");
+    await Tasks_1.TaskModel.findByIdAndDelete(id);
+    (0, response_1.SuccessResponse)(res, { message: "Task deleted successfully" });
 };
 exports.deleteTask = deleteTask;

@@ -1,76 +1,80 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { TaskModel } from '../../models/schema/Tasks';
-import { ProjectModel } from '../../models/schema/project';
+import { UserProjectModel } from '../../models/schema/User_Project';
+import { UserTaskModel } from '../../models/schema/User_Task';
+import { UserRejectedReason } from '../../models/schema/User_Rejection';
+import { RejectedReson } from '../../models/schema/RejectdReson';
+import { User } from '../../models/schema/auth/User';
 import { BadRequest } from '../../Errors/BadRequest';
 import { NotFound } from '../../Errors/NotFound';
 import { UnauthorizedError } from '../../Errors/unauthorizedError';
 import { SuccessResponse } from '../../utils/response';
-import { User } from '../../models/schema/auth/User';
-import {UserProjectModel} from '../../models/schema/User_Project';
-import { sendEmail } from '../../utils/sendEmails';
-import { UserTaskModel } from '../../models/schema/User_Task';
-import { UserRejectedReason } from '../../models/schema/User_Rejection';
-import { RejectedReson } from '../../models/schema/RejectdReson';
 
+// --------------------------
+// ADD USER TO TASK
+// --------------------------
 export const addUserToTask = async (req: Request, res: Response) => {
+  const adminId = req.user?._id;
+  const { user_id, task_id, role, User_taskId } = req.body;
 
-  const {user_id, task_id, role, User_taskId} = req.body;
   if (!user_id || !task_id) throw new BadRequest("User ID and Task ID are required");
 
-  const task = await TaskModel.findById(task_id);
-  if (!task) throw new NotFound("Task not found");
+  // SaaS check: task must belong to current admin
+  const task = await TaskModel.findOne({ _id: task_id, createdBy: adminId });
+  if (!task) throw new NotFound("Task not found in your workspace");
 
-  const user =await UserProjectModel.findOne({user_id: user_id, project_id: task.projectId});
-  if (!user) throw new NotFound("User not found in this project");
+  const userProject = await UserProjectModel.findOne({ user_id, project_id: task.projectId });
+  if (!userProject) throw new NotFound("User not found in this project");
 
-  const userTask = await UserTaskModel.findOne({user_id: user_id, task_id: task_id});
-  if (userTask) throw new BadRequest("User already added to this task");
-  
+  const existingUserTask = await UserTaskModel.findOne({ user_id, task_id });
+  if (existingUserTask) throw new BadRequest("User already added to this task");
 
-  const userTaskId = await UserTaskModel.create({
-    user_id: user_id,
-    task_id: task_id,
+  const newUserTask = await UserTaskModel.create({
+    user_id,
+    task_id,
     role: role || 'member',
-    User_taskId: User_taskId,
+    User_taskId,
     status: 'pending',
   });
-  SuccessResponse(res, { message: "User added to task successfully", userTaskId });
-}
 
+  SuccessResponse(res, { message: "User added to task successfully", data: newUserTask });
+};
+
+// --------------------------
+// UPDATE USER ROLE IN TASK
+// --------------------------
 export const updaterole = async (req: Request, res: Response) => {
-  const userId = req.user?._id;
-  const currentRole = String((req.user as any)?.role || '').toLowerCase();
+  const adminId = req.user?._id;
+  const currentRole = String(req.user?.role || '').toLowerCase();
+
   if (!["admin", "teamlead"].includes(currentRole)) {
     throw new UnauthorizedError("Only Admin or TeamLead can add users to task");
   }
 
   const { id } = req.params; // UserTask ID
-  const { role,user_id } = req.body;
+  const { role, user_id } = req.body;
+  if (!id) throw new BadRequest("UserTask ID is required");
 
-  if (!id) throw new BadRequest("Task ID is required");
-
-  // جلب المهمة
-  const task = await TaskModel.findById(id);
-  if (!task) throw new NotFound("Task not found");
-  
-
-  // التأكد أن المستخدم عضو في المشروع
-  const userProject = await UserProjectModel.findOne({ user_id, project_id: task.projectId });
-  if (!userProject) throw new NotFound("User not found in this project");
-
-  // جلب UserTask
-  const userTask = await UserTaskModel.findOne({ user_id, task_id: id });
+  // SaaS check: Task must belong to admin
+  const userTask = await UserTaskModel.findById(id).populate('task_id');
   if (!userTask) throw new NotFound("UserTask not found");
+
+  const task = await TaskModel.findOne({ _id: userTask.task_id, createdBy: adminId });
+  if (!task) throw new NotFound("You do not have access to this task");
 
   userTask.role = role;
   await userTask.save();
-  SuccessResponse(res, { message: "User role updated successfully", userTask });
- }
 
-export const updateUserTaskStatus = async (req: Request, res: Response) => { 
-  const userId = req.user?._id;
-  const currentRole = String((req.user as any)?.role || '').toLowerCase();
+  SuccessResponse(res, { message: "User role updated successfully", data: userTask });
+};
+
+// --------------------------
+// UPDATE USER TASK STATUS
+// --------------------------
+export const updateUserTaskStatus = async (req: Request, res: Response) => {
+  const adminId = req.user?._id;
+  const currentRole = String(req.user?.role || '').toLowerCase();
 
   if (!["admin", "teamlead"].includes(currentRole)) {
     throw new UnauthorizedError("Only Admin or TeamLead can update task status");
@@ -84,22 +88,28 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   const userTask = await UserTaskModel.findById(id);
   if (!userTask) throw new NotFound("UserTask not found");
 
+  // SaaS check: Task must belong to admin
+  const task = await TaskModel.findOne({ _id: userTask.task_id, createdBy: adminId });
+  if (!task) throw new NotFound("You do not have access to this task");
+
   const allowedStatuses = ["Approved from Member_can_approve", "done"];
 
   if (status === "rejected") {
     if (!rejection_reasonId) throw new BadRequest("Rejection reason is required");
 
-    const rejectionReason = await RejectedReson.findById(rejection_reasonId);
-    if (!rejectionReason) throw new NotFound("Rejection reason not found");
+    const rejectionReason = await RejectedReson.findOne({
+      _id: rejection_reasonId,
+      createdBy: adminId
+    });
+    if (!rejectionReason) throw new NotFound("Rejection reason not found in your workspace");
 
     await UserRejectedReason.create({
-  userId: userTask.user_id,  // بدل userId الحالي
-  reasonId: rejection_reasonId,
-  taskId: userTask._id,      // احفظ الـ UserTask ID مش الـ task_id الرئيسي
-});
+      userId: userTask.user_id,
+      reasonId: rejection_reasonId,
+      taskId: userTask._id,
+    });
 
-
-    if (userTask.User_taskId && userTask.User_taskId.length > 0) {
+    if (userTask.User_taskId?.length > 0) {
       await UserTaskModel.updateMany(
         { _id: { $in: userTask.User_taskId } },
         { status: "pending_edit" }
@@ -108,16 +118,13 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
 
     userTask.status = "rejected";
 
-    const pointsuser = await User.findById(userTask.user_id);
-    if (pointsuser) {
-      pointsuser.totalRejectedPoints = (pointsuser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
-      await pointsuser.save();
+    const pointsUser = await User.findById(userTask.user_id);
+    if (pointsUser) {
+      pointsUser.totalRejectedPoints = (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
+      await pointsUser.save();
     }
 
-    // تحديث الـ Task الرئيسي
-    await TaskModel.findByIdAndUpdate(userTask.task_id, {
-      status: "rejected",
-    });
+    await TaskModel.findByIdAndUpdate(userTask.task_id, { status: "rejected" });
 
   } else {
     if (!userTask.status || !allowedStatuses.includes(userTask.status)) {
@@ -125,92 +132,68 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
     }
 
     userTask.status = status;
-    if (status === "approved" || status === "done") {
+    if (["approved", "done"].includes(status)) {
       userTask.is_finished = true;
-
-      // تحديث الـ Task الرئيسي
-      await TaskModel.findByIdAndUpdate(userTask.task_id, {
-        status: status,
-      });
+      await TaskModel.findByIdAndUpdate(userTask.task_id, { status });
     }
   }
 
   await userTask.save();
 
-  SuccessResponse(res, {
-    message: "UserTask status updated successfully",
-    userTask
-  });
+  SuccessResponse(res, { message: "UserTask status updated successfully", data: userTask });
 };
 
+// --------------------------
+// REMOVE USER FROM TASK
+// --------------------------
 export const removedUserFromTask = async (req: Request, res: Response) => {
-  // استخراج بيانات المستخدم الحالي
-  const currentRole = String((req.user as any)?.role || "").toLowerCase();
+  const adminId = req.user?._id;
+  const currentRole = String(req.user?.role || "").toLowerCase();
+
   if (!["admin", "teamlead"].includes(currentRole)) {
     throw new UnauthorizedError("Only Admin or TeamLead can remove users from task");
   }
 
-  // استخراج IDs من params
   const { user_id, task_id } = req.params;
 
-  // البحث وحذف السطر الذي يربط هذا المستخدم بهذه المهمة
-  const deletedUserTask = await UserTaskModel.findOneAndDelete({
-     task_id,
-    user_id 
-   });
+  // SaaS check: task must belong to admin
+  const task = await TaskModel.findOne({ _id: task_id, createdBy: adminId });
+  if (!task) throw new NotFound("You do not have access to this task");
 
-  if (!deletedUserTask) {
-    throw new NotFound("This user is not assigned to this task");
-  }
+  const deletedUserTask = await UserTaskModel.findOneAndDelete({ task_id, user_id });
+  if (!deletedUserTask) throw new NotFound("This user is not assigned to this task");
 
-  // إرسال نجاح
   SuccessResponse(res, { message: "User removed from task successfully" });
 };
 
-
+// --------------------------
+// GET ALL USER TASKS FOR A TASK
+// --------------------------
 export const getAllUserTask = async (req: Request, res: Response) => {
-  const currentRole = String((req.user as any)?.role || "").toLowerCase();
+  const adminId = req.user?._id;
+  const currentRole = String(req.user?.role || "").toLowerCase();
 
   if (!["admin", "teamlead"].includes(currentRole)) {
     throw new UnauthorizedError("Only Admin or TeamLead can view user tasks");
   }
 
-  const { id } = req.params;
+  const { id } = req.params; // task_id
   if (!id) throw new BadRequest("Task ID is required");
 
-  const task = await TaskModel.findById(id);
-  if (!task) throw new NotFound("Task not found");
+  // SaaS check: task must belong to admin
+  const task = await TaskModel.findOne({ _id: id, createdBy: adminId });
+  if (!task) throw new NotFound("Task not found in your workspace");
 
   const userTasks = await UserTaskModel.find({ task_id: id })
-    .populate("user_id", "name email role"); // role هنا هو role اليوزر العادي
+    .populate("user_id", "name email role");
 
   const usersWithUserTaskId = userTasks.map(ut => ({
     userTaskId: ut._id,
-    user: ut.user_id,  
-    roleInsideTask: ut.role,              // 👈 أضفنا الرول داخل التاسك
-    status: ut.status,                    // لو محتاج الحالة
-    is_finished: ut.is_finished           // لو محتاج الفينيش
+    user: ut.user_id,
+    roleInsideTask: ut.role,
+    status: ut.status,
+    is_finished: ut.is_finished
   }));
 
-  return SuccessResponse(res, {
-    message: "User tasks fetched successfully",
-    users: usersWithUserTaskId,
-  });
+  return SuccessResponse(res, { message: "User tasks fetched successfully", users: usersWithUserTaskId });
 };
-
-
-
-
-
-// export const getalluser_task=async(req: Request, res: Response) =>{
-//     const currentRole = String((req.user as any)?.role || "").toLowerCase();
-
-//   if (!["admin", "teamlead"].includes(currentRole)) {
-//     throw new UnauthorizedError("Only Admin or TeamLead can view user tasks");
-//   }
-//   const 
-
-
-
-
-// }
