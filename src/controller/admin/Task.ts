@@ -72,26 +72,26 @@ export const createTask = async (req: Request, res: Response) => {
 };
 
 // --------------------------
-// GET ALL TASKS
+// GET ALL TASKS  (FIXED for SaaS)
 // --------------------------
 export const getAllTasks = async (_req: Request, res: Response) => {
   const user = _req.user?._id;
-  if(!user) throw new UnauthorizedError('Access denied.');
+  if (!user) throw new UnauthorizedError('Access denied.');
 
-  const checkuseratproject = await UserProjectModel.findOne({ user_id: user });
+  // هات كل المشاريع اللي المستخدم موجود فيها
+  const userProjects = await UserProjectModel.find({ user_id: user });
 
-  const role = _req.user?.role?.toLowerCase();
-  if (role !== "admin") {
-    const userProjectRole = checkuseratproject?.role?.toLowerCase() ?? '';
-    if (!checkuseratproject || ["member", "membercanapprove"].includes(userProjectRole)) {
-      throw new UnauthorizedError("You can't view tasks for this project");
-    }
-  }
+  if (!userProjects.length)
+    throw new UnauthorizedError("You are not assigned to any project.");
 
-  const tasks = await TaskModel.find()
-    .populate('projectId')       // بدل project_id
-    .populate('Depatment_id')    // بدل Depatment_id
-    .populate('createdBy', 'name email'); // بدل createdBy
+  // IDs of projects user is part of
+  const projectIds = userProjects.map((p) => p.project_id);
+
+  // هات التاسكات الخاصة بالمشاريع دي فقط
+  const tasks = await TaskModel.find({ projectId: { $in: projectIds } })
+    .populate('projectId')
+    .populate('Depatment_id')
+    .populate('createdBy', 'name email');
 
   SuccessResponse(res, { message: 'Tasks fetched successfully', tasks });
 };
@@ -104,9 +104,9 @@ export const getTaskById = async (req: Request, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest('Invalid Task ID');
 
   const task = await TaskModel.findById(id)
-    .populate('projectId')       // بدل project_id
-    .populate('Depatment_id')    // بدل Depatment_id
-    .populate('createdBy', 'name email'); // بدل createdBy
+    .populate('projectId')
+    .populate('Depatment_id')
+    .populate('createdBy', 'name email');
 
   if (!task) throw new NotFound('Task not found');
 
@@ -118,7 +118,7 @@ export const getTaskById = async (req: Request, res: Response) => {
 // --------------------------
 export const updateTask = async (req: Request, res: Response) => {
   const user = req.user;
-  if(!user) throw new UnauthorizedError('Access denied.');
+  if (!user) throw new UnauthorizedError('Access denied.');
 
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest('Invalid Task ID');
@@ -126,7 +126,6 @@ export const updateTask = async (req: Request, res: Response) => {
   const task = await TaskModel.findById(id);
   if (!task) throw new NotFound('Task not found');
 
-  // تحديث الحقول
   const updates = req.body;
   if (req.file) updates.file = req.file.path;
   if (req.body.recorde) updates.recorde = req.body.recorde;
@@ -134,7 +133,7 @@ export const updateTask = async (req: Request, res: Response) => {
   Object.assign(task, updates);
   await task.save();
 
-  SuccessResponse(res, { message:'Task updated successfully', task });
+  SuccessResponse(res, { message: 'Task updated successfully', task });
 };
 
 // --------------------------
@@ -142,7 +141,7 @@ export const updateTask = async (req: Request, res: Response) => {
 // --------------------------
 export const deleteTask = async (req: Request, res: Response) => {
   const user = req.user;
-  if(!user) throw new UnauthorizedError('Access denied.');
+  if (!user) throw new UnauthorizedError('Access denied.');
 
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest('Invalid Task ID');
@@ -150,5 +149,5 @@ export const deleteTask = async (req: Request, res: Response) => {
   const task = await TaskModel.findByIdAndDelete(id);
   if (!task) throw new NotFound('Task not found');
 
-  SuccessResponse(res, { message:'Task deleted successfully' });
+  SuccessResponse(res, { message: 'Task deleted successfully' });
 };

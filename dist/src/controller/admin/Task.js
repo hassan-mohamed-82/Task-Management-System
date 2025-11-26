@@ -98,24 +98,23 @@ const createTask = async (req, res) => {
 };
 exports.createTask = createTask;
 // --------------------------
-// GET ALL TASKS
+// GET ALL TASKS  (FIXED for SaaS)
 // --------------------------
 const getAllTasks = async (_req, res) => {
     const user = _req.user?._id;
     if (!user)
         throw new unauthorizedError_1.UnauthorizedError('Access denied.');
-    const checkuseratproject = await User_Project_1.UserProjectModel.findOne({ user_id: user });
-    const role = _req.user?.role?.toLowerCase();
-    if (role !== "admin") {
-        const userProjectRole = checkuseratproject?.role?.toLowerCase() ?? '';
-        if (!checkuseratproject || ["member", "membercanapprove"].includes(userProjectRole)) {
-            throw new unauthorizedError_1.UnauthorizedError("You can't view tasks for this project");
-        }
-    }
-    const tasks = await Tasks_1.TaskModel.find()
-        .populate('projectId') // بدل project_id
-        .populate('Depatment_id') // بدل Depatment_id
-        .populate('createdBy', 'name email'); // بدل createdBy
+    // هات كل المشاريع اللي المستخدم موجود فيها
+    const userProjects = await User_Project_1.UserProjectModel.find({ user_id: user });
+    if (!userProjects.length)
+        throw new unauthorizedError_1.UnauthorizedError("You are not assigned to any project.");
+    // IDs of projects user is part of
+    const projectIds = userProjects.map((p) => p.project_id);
+    // هات التاسكات الخاصة بالمشاريع دي فقط
+    const tasks = await Tasks_1.TaskModel.find({ projectId: { $in: projectIds } })
+        .populate('projectId')
+        .populate('Depatment_id')
+        .populate('createdBy', 'name email');
     (0, response_1.SuccessResponse)(res, { message: 'Tasks fetched successfully', tasks });
 };
 exports.getAllTasks = getAllTasks;
@@ -127,9 +126,9 @@ const getTaskById = async (req, res) => {
     if (!mongoose_1.default.Types.ObjectId.isValid(id))
         throw new BadRequest_1.BadRequest('Invalid Task ID');
     const task = await Tasks_1.TaskModel.findById(id)
-        .populate('projectId') // بدل project_id
-        .populate('Depatment_id') // بدل Depatment_id
-        .populate('createdBy', 'name email'); // بدل createdBy
+        .populate('projectId')
+        .populate('Depatment_id')
+        .populate('createdBy', 'name email');
     if (!task)
         throw new NotFound_1.NotFound('Task not found');
     (0, response_1.SuccessResponse)(res, { message: 'Task fetched successfully', task });
@@ -148,7 +147,6 @@ const updateTask = async (req, res) => {
     const task = await Tasks_1.TaskModel.findById(id);
     if (!task)
         throw new NotFound_1.NotFound('Task not found');
-    // تحديث الحقول
     const updates = req.body;
     if (req.file)
         updates.file = req.file.path;
