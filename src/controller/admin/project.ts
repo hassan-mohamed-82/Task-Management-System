@@ -7,21 +7,19 @@ import { SubscriptionModel } from "../../models/schema/subscriptions";
 import { UserProjectModel } from "../../models/schema/User_Project";
 import mongoose from "mongoose";
 
-
 export const createProject = async (req: Request, res: Response) => {
   const userId = req.user?._id;
-
-  if (!userId) {
-    throw new BadRequest("User information is missing in the request");
-  }
+  if (!userId) throw new BadRequest("User information is missing in the request");
 
   const { name, description } = req.body;
   if (!name) throw new BadRequest("Project name is required");
 
-  // 1️⃣ جلب الاشتراك
-  const subscription = await SubscriptionModel.findOne({ userId }).populate("planId");
-  if (!subscription) throw new BadRequest("You do not have an active subscription");
+  // ✅ تحويل userId لـ ObjectId للتأكد من المطابقة
+  const objectUserId = new mongoose.Types.ObjectId(userId);
 
+  // 1️⃣ جلب الاشتراك
+  const subscription = await SubscriptionModel.findOne({ userId: objectUserId }).populate("planId");
+  if (!subscription) throw new BadRequest("You do not have an active subscription");
   if (subscription.status !== "active") throw new BadRequest("Your subscription is not active");
 
   const now = new Date();
@@ -33,21 +31,17 @@ export const createProject = async (req: Request, res: Response) => {
 
   // 2️⃣ التأكد من خطة الاشتراك
   const plan = subscription.planId as any;
-  if (!plan || typeof plan.projects_limit !== "number") {
-    throw new BadRequest("Invalid plan configuration");
-  }
+  if (!plan || typeof plan.projects_limit !== "number") throw new BadRequest("Invalid plan configuration");
 
   // 3️⃣ التأكد من عدد المشاريع الحالية
-  const currentProjectsCount = await ProjectModel.countDocuments({ createdBy: userId });
-  if (currentProjectsCount >= plan.projects_limit) {
-    throw new BadRequest("You have reached your project limit for this plan");
-  }
+  const currentProjectsCount = await ProjectModel.countDocuments({ createdBy: objectUserId });
+  if (currentProjectsCount >= plan.projects_limit) throw new BadRequest("You have reached your project limit for this plan");
 
   // 4️⃣ إنشاء المشروع
   const newProject = await ProjectModel.create({
     name,
     description,
-    createdBy: userId, // ← الحقل المهم
+    createdBy: objectUserId,
   });
 
   // 5️⃣ تحديث الاشتراك
@@ -57,7 +51,7 @@ export const createProject = async (req: Request, res: Response) => {
 
   // 6️⃣ إضافة المستخدم كـ admin في المشروع
   await UserProjectModel.create({
-    user_id: userId,
+    user_id: objectUserId,
     project_id: newProject._id,
     role: "admin",
     email: req.user?.email,
@@ -69,21 +63,17 @@ export const createProject = async (req: Request, res: Response) => {
   });
 };
 
-
 export const getAllProjects = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   if (!userId) throw new BadRequest("User ID is required");
 
-  const projects = await ProjectModel.find({ createdBy: userId });
+  const projects = await ProjectModel.find({ createdBy: new mongoose.Types.ObjectId(userId) });
   return SuccessResponse(res, {
     message: "Projects fetched successfully",
     projects,
   });
 };
 
-// =======================
-// 2️⃣ Get a single project by ID (owned by user)
-// =======================
 export const getProjectById = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   const { id } = req.params;
@@ -91,7 +81,7 @@ export const getProjectById = async (req: Request, res: Response) => {
   if (!id) throw new BadRequest("Project ID is required");
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid Project ID");
 
-  const project = await ProjectModel.findOne({ _id: id, createdBy: userId });
+  const project = await ProjectModel.findOne({ _id: id, createdBy: new mongoose.Types.ObjectId(userId) });
   if (!project) throw new NotFound("Project not found");
 
   return SuccessResponse(res, {
@@ -108,7 +98,7 @@ export const updateProjectById = async (req: Request, res: Response) => {
   if (!id) throw new BadRequest("Project ID is required");
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid Project ID");
 
-  const project = await ProjectModel.findOne({ _id: id, createdBy: userId });
+  const project = await ProjectModel.findOne({ _id: id, createdBy: new mongoose.Types.ObjectId(userId) });
   if (!project) throw new NotFound("Project not found");
 
   project.name = name || project.name;
@@ -122,9 +112,6 @@ export const updateProjectById = async (req: Request, res: Response) => {
   });
 };
 
-// =======================
-// 5️⃣ Delete project by ID (owned by user)
-// =======================
 export const deleteProjectById = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   const { id } = req.params;
@@ -132,7 +119,7 @@ export const deleteProjectById = async (req: Request, res: Response) => {
   if (!id) throw new BadRequest("Project ID is required");
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid Project ID");
 
-  const project = await ProjectModel.findOne({ _id: id, createdBy: userId });
+  const project = await ProjectModel.findOne({ _id: id, createdBy: new mongoose.Types.ObjectId(userId) });
   if (!project) throw new NotFound("Project not found");
 
   await ProjectModel.findByIdAndDelete(id);

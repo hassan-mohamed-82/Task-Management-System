@@ -13,7 +13,7 @@ const projectSchema = new Schema<IProject>(
   {
     name: { type: String, required: true },
     description: { type: String },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );
