@@ -65,15 +65,17 @@ const useatproject = await UserProjectModel.create({
 
 
 export const getAllProjects = async (req: Request, res: Response) => {
-    const projects = await ProjectModel.find();
+  const user_id = req.user?._id;
+    const projects = await ProjectModel.find({user_id});
     return SuccessResponse(res, {message: "Projects fetched successfully", projects });
 }
 export const getProjectById = async (req: Request, res: Response) => {
     const { id } = req.params;
+    const user_id = req.user?._id;
    if (!id) {
         throw new BadRequest("Project ID is required");
     }
-    const project = await ProjectModel.findById(id);
+    const project = await ProjectModel.findById({ id , user_id });
     if (!project) {
         throw new NotFound("Project not found");
     }

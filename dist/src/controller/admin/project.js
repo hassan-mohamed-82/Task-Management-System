@@ -56,16 +56,18 @@ const createProject = async (req, res) => {
 };
 exports.createProject = createProject;
 const getAllProjects = async (req, res) => {
-    const projects = await project_1.ProjectModel.find();
+    const user_id = req.user?._id;
+    const projects = await project_1.ProjectModel.find({ user_id });
     return (0, response_1.SuccessResponse)(res, { message: "Projects fetched successfully", projects });
 };
 exports.getAllProjects = getAllProjects;
 const getProjectById = async (req, res) => {
     const { id } = req.params;
+    const user_id = req.user?._id;
     if (!id) {
         throw new BadRequest_1.BadRequest("Project ID is required");
     }
-    const project = await project_1.ProjectModel.findById(id);
+    const project = await project_1.ProjectModel.findById({ id, user_id });
     if (!project) {
         throw new NotFound_1.NotFound("Project not found");
     }

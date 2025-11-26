@@ -2,6 +2,7 @@ import Joi from "joi";
 export const createProjectSchema = Joi.object({
     name: Joi.string().required(),
     description: Joi.string().optional(),
+    createdBy: Joi.string().required(),
 });
 
 export const updateProjectSchema = Joi.object({
