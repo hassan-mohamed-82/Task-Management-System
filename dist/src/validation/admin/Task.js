@@ -16,6 +16,7 @@ exports.createTaskSchema = joi_1.default.object({
     userId: joi_1.default.string().optional(),
     file: joi_1.default.any().optional(),
     recorde: joi_1.default.any().optional(),
+    createdBy: joi_1.default.string().optional()
 });
 exports.updateTaskSchema = joi_1.default.object({
     name: joi_1.default.string().optional(),
@@ -27,4 +28,5 @@ exports.updateTaskSchema = joi_1.default.object({
     Depatment_id: joi_1.default.string().optional(),
     file: joi_1.default.any().optional(),
     recorde: joi_1.default.any().optional(),
+    createdBy: joi_1.default.string().optional()
 });

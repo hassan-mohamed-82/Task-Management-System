@@ -7,7 +7,9 @@ exports.updateDepartmentSchema = exports.createDepartmentSchema = void 0;
 const joi_1 = __importDefault(require("joi"));
 exports.createDepartmentSchema = joi_1.default.object({
     name: joi_1.default.string().min(3).max(30).required(),
+    createdBy: joi_1.default.string().required(),
 });
 exports.updateDepartmentSchema = joi_1.default.object({
     name: joi_1.default.string().min(3).max(30).optional(),
+    createdBy: joi_1.default.string().optional(),
 });

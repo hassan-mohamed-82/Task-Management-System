@@ -8,8 +8,10 @@ const joi_1 = __importDefault(require("joi"));
 exports.createRejectedResonSchema = joi_1.default.object({
     reason: joi_1.default.string().required(),
     points: joi_1.default.number().required(),
+    createdBy: joi_1.default.string().required(),
 });
 exports.updateRejectedResonSchema = joi_1.default.object({
     reason: joi_1.default.string().optional(),
     points: joi_1.default.number().optional(),
+    createdBy: joi_1.default.string().optional(),
 });

@@ -11,6 +11,8 @@ export const createTaskSchema = Joi.object({
     userId: Joi.string().optional(),
     file: Joi.any().optional(),
 recorde: Joi.any().optional(),
+createdBy:Joi.string().optional()
+
 
 });
 
@@ -25,6 +27,7 @@ export const updateTaskSchema = Joi.object({
     Depatment_id:Joi.string().optional(),
     file: Joi.any().optional(),
 recorde: Joi.any().optional(),
+createdBy:Joi.string().optional()
 
     
 });
