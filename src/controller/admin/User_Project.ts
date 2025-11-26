@@ -12,7 +12,7 @@ import { sendEmail } from '../../utils/sendEmails';
 
 export const addUserToProject = async (req: Request, res: Response) => {
   const { user_id, email, project_id, role } = req.body;
-  const roles = role || "Member";
+  const roles = role || "member";
 
   if (!project_id || (!user_id && !email)) {
     throw new BadRequest("Missing required fields (user_id or email)");

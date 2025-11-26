@@ -14,7 +14,7 @@ const User_Project_1 = require("../../models/schema/User_Project");
 const sendEmails_1 = require("../../utils/sendEmails");
 const addUserToProject = async (req, res) => {
     const { user_id, email, project_id, role } = req.body;
-    const roles = role || "Member";
+    const roles = role || "member";
     if (!project_id || (!user_id && !email)) {
         throw new BadRequest_1.BadRequest("Missing required fields (user_id or email)");
     }

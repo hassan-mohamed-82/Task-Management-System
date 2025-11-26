@@ -11,23 +11,51 @@ import { User } from "../../models/schema/auth/User";
 import { UserTaskModel } from "../../models/schema/User_Task";
 import { sendEmail } from "../../utils/sendEmails";
 import { UserRejectedReason } from "../../models/schema/User_Rejection";
+import { TaskModel } from "../../models/schema/Tasks";
 
 export const getalltaskatprojectforuser = async (req: Request, res: Response) => {
-    const user = req.user?._id;
-    if (!user) throw new BadRequest("User ID is required");
+    const userId = req.user?._id;
+    if (!userId) throw new BadRequest("User ID is required");
+
     const { project_id } = req.params;
     if (!project_id) throw new BadRequest("Project ID is required");
-
     if (!mongoose.Types.ObjectId.isValid(project_id)) {
         throw new BadRequest("Invalid project ID");
     }
 
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const projectObjectId = new mongoose.Types.ObjectId(project_id);
+
+    // جلب عضوية المستخدم في المشروع
+    const userProject = await UserProjectModel.findOne({
+        user_id: userObjectId,
+        project_id: projectObjectId,
+    });
+
+    if (!userProject) {
+        throw new UnauthorizedError("You are not part of this project");
+    }
+
+    // السماح للأدوار المطلوبة فقط
+    const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
+    const projectRole = String(userProject.role || "").toLowerCase();
+    if (!allowedRoles.includes(projectRole)) {
+        throw new UnauthorizedError("You are not allowed to access this project tasks");
+    }
+
+    // جلب كل المهام داخل المشروع باستخدام projectId الصحيح
+    const projectTasks = await TaskModel.find({ projectId: projectObjectId }).select("_id");
+    if (!projectTasks.length) throw new NotFound("No tasks found in this project");
+
+    const taskIds = projectTasks.map(t => t._id);
+
+    // جلب المهام المخصصة لهذا المستخدم داخل المشروع
     const tasks = await UserTaskModel.find({
-        user_id: user,
-        task_id: { $in: [project_id] },
+        user_id: userObjectId,
+        task_id: { $in: taskIds },
     })
-        .populate("user_id", "name email")
-        .populate("task_id", "name");
+    .populate("user_id", "name email")
+    .populate("task_id", "name");
 
     return SuccessResponse(res, {
         message: "Tasks fetched successfully",
@@ -71,7 +99,7 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   const currentStatus = userTask.status;
 
   // ================= Member =================
-  if (role === "Member") {
+  if (role === "member") {
     if (currentStatus === "pending" && status === "in_progress") {
       userTask.status = "in_progress";
     } else if (currentStatus === "in_progress" && status === "done") {
@@ -82,7 +110,7 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   }
 
   // ============ Membercanapprove ============
-  if (role === "Membercanapprove") {
+  if (role === "membercanapprove") {
     if (currentStatus === "done" && status === "Approved from Member_can_approve") {
       userTask.status = "Approved from Member_can_approve";
     } else if (currentStatus === "done" && status === "rejected") {

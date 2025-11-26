@@ -4,7 +4,7 @@ export interface IUserProject extends Document {
   user_id: mongoose.Types.ObjectId;
   email: string;
   project_id: mongoose.Types.ObjectId;
-  role?:'Membercanapprove' | 'Member' | 'teamlead';
+  role?:'membercanapprove' | 'member' | 'teamlead';
 }
 
 const UserProjectSchema = new Schema<IUserProject>(
@@ -25,7 +25,7 @@ const UserProjectSchema = new Schema<IUserProject>(
     },
     role: {
       type: String,
-      enum: ["teamlead", "Member", "Membercanapprove","admin"],
+      enum: ["teamlead", "member", "membercanapprove","admin"],
       default: "Member",
     },
   },

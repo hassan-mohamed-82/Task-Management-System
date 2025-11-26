@@ -16,30 +16,27 @@ export const authorizeRoles = (...roles: string[]): RequestHandler => {
   };
 };
 
-
 export const checkProjectOrTaskRole = (allowedRoles: string[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?._id || req.user?.id;
-      const globalRole = req.user?.role?.toLowerCase() || "";
+      const globalRole = (req.user?.role || "").toLowerCase();
 
       if (!userId) throw new UnauthorizedError("Unauthorized");
 
       // Admin bypass
       if (globalRole === "admin") return next();
 
-      // Only "user" role allowed
       if (globalRole !== "user") {
         throw new UnauthorizedError("Only user or admin can access");
       }
 
       const { project_id, taskId } = req.params;
+
       let projectRole: string | null = null;
       let taskRole: string | null = null;
 
-      // --------------------------
-      // Check Project role
-      // --------------------------
+      // ---------------- Project Role ----------------
       if (project_id && mongoose.Types.ObjectId.isValid(project_id)) {
         const userProject = await UserProjectModel.findOne({
           user_id: userId,
@@ -49,34 +46,31 @@ export const checkProjectOrTaskRole = (allowedRoles: string[]) => {
         if (!userProject) {
           throw new NotFound("User is not part of this project");
         }
-        projectRole = userProject.role ?? null;
+
+        projectRole = (userProject.role || "").toLowerCase();
       }
 
-      // --------------------------
-      // Check Task role
-      // --------------------------
+      // ---------------- Task Role ----------------
       if (taskId && mongoose.Types.ObjectId.isValid(taskId)) {
         const userTask = await UserTaskModel.findOne({
-          userId: userId,
+          user_id: userId,
           task_id: taskId,
         });
 
         if (!userTask) {
           throw new NotFound("User is not part of this task");
         }
-        taskRole = userTask.role ?? null;
+
+        taskRole = (userTask.role || "").toLowerCase();
       }
 
-      // --------------------------
-      // Allow endpoints without project or task
-      // --------------------------
       if (!project_id && !taskId) return next();
 
       const allowedRolesLower = allowedRoles.map(r => r.toLowerCase());
 
       const isAllowed =
-        (projectRole && allowedRolesLower.includes(projectRole.toLowerCase())) ||
-        (taskRole && allowedRolesLower.includes(taskRole.toLowerCase()));
+        (projectRole && allowedRolesLower.includes(projectRole)) ||
+        (taskRole && allowedRolesLower.includes(taskRole));
 
       if (!isAllowed) {
         throw new UnauthorizedError(
@@ -84,14 +78,13 @@ export const checkProjectOrTaskRole = (allowedRoles: string[]) => {
         );
       }
 
-      // Save roles for later use in controllers
       res.locals.userProjectRole = projectRole;
       res.locals.userTaskRole = taskRole;
 
       next();
-    } catch (err) {
+    } catch (err
+    ) {
       next(err);
     }
   };
 };
-

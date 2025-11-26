@@ -9,7 +9,7 @@ export interface IUserTask extends Document {
   rejection_reasonId:mongoose.Types.ObjectId;
 User_taskId: mongoose.Types.ObjectId[];
   is_finished?: boolean;
-  role: 'Member' | 'Membercanapprove';  
+  role: 'member' | 'membercanapprove';  
 }
 
 const UserTaskSchema = new Schema<IUserTask>(
@@ -39,8 +39,8 @@ const UserTaskSchema = new Schema<IUserTask>(
     },
     role:{
       type: String,
-      enum: [ 'Member', 'Membercanapprove'],
-      default: 'Member',
+      enum: [ 'member', 'membercanapprove'],
+      default: 'member',
     },
         User_taskId:[{
       type: Schema.Types.ObjectId,

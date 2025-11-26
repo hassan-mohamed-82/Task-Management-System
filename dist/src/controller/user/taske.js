@@ -7,13 +7,16 @@ exports.updateUserTaskStatus = exports.getalltaskatprojectforuser = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
+const unauthorizedError_1 = require("../../Errors/unauthorizedError");
 const response_1 = require("../../utils/response");
+const User_Project_1 = require("../../models/schema/User_Project");
 const User_1 = require("../../models/schema/auth/User");
 const User_Task_1 = require("../../models/schema/User_Task");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
+const Tasks_1 = require("../../models/schema/Tasks");
 const getalltaskatprojectforuser = async (req, res) => {
-    const user = req.user?._id;
-    if (!user)
+    const userId = req.user?._id;
+    if (!userId)
         throw new BadRequest_1.BadRequest("User ID is required");
     const { project_id } = req.params;
     if (!project_id)
@@ -21,9 +24,31 @@ const getalltaskatprojectforuser = async (req, res) => {
     if (!mongoose_1.default.Types.ObjectId.isValid(project_id)) {
         throw new BadRequest_1.BadRequest("Invalid project ID");
     }
+    const userObjectId = new mongoose_1.default.Types.ObjectId(userId);
+    const projectObjectId = new mongoose_1.default.Types.ObjectId(project_id);
+    // جلب عضوية المستخدم في المشروع
+    const userProject = await User_Project_1.UserProjectModel.findOne({
+        user_id: userObjectId,
+        project_id: projectObjectId,
+    });
+    if (!userProject) {
+        throw new unauthorizedError_1.UnauthorizedError("You are not part of this project");
+    }
+    // السماح للأدوار المطلوبة فقط
+    const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
+    const projectRole = String(userProject.role || "").toLowerCase();
+    if (!allowedRoles.includes(projectRole)) {
+        throw new unauthorizedError_1.UnauthorizedError("You are not allowed to access this project tasks");
+    }
+    // جلب كل المهام داخل المشروع باستخدام projectId الصحيح
+    const projectTasks = await Tasks_1.TaskModel.find({ projectId: projectObjectId }).select("_id");
+    if (!projectTasks.length)
+        throw new NotFound_1.NotFound("No tasks found in this project");
+    const taskIds = projectTasks.map(t => t._id);
+    // جلب المهام المخصصة لهذا المستخدم داخل المشروع
     const tasks = await User_Task_1.UserTaskModel.find({
-        user_id: user,
-        task_id: { $in: [project_id] },
+        user_id: userObjectId,
+        task_id: { $in: taskIds },
     })
         .populate("user_id", "name email")
         .populate("task_id", "name");
@@ -63,7 +88,7 @@ const updateUserTaskStatus = async (req, res) => {
     const role = userTask.role; // Member أو Membercanapprove
     const currentStatus = userTask.status;
     // ================= Member =================
-    if (role === "Member") {
+    if (role === "member") {
         if (currentStatus === "pending" && status === "in_progress") {
             userTask.status = "in_progress";
         }
@@ -75,7 +100,7 @@ const updateUserTaskStatus = async (req, res) => {
         }
     }
     // ============ Membercanapprove ============
-    if (role === "Membercanapprove") {
+    if (role === "membercanapprove") {
         if (currentStatus === "done" && status === "Approved from Member_can_approve") {
             userTask.status = "Approved from Member_can_approve";
         }

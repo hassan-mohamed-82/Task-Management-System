@@ -61,8 +61,8 @@ const UserTaskSchema = new mongoose_1.Schema({
     },
     role: {
         type: String,
-        enum: ['Member', 'Membercanapprove'],
-        default: 'Member',
+        enum: ['member', 'membercanapprove'],
+        default: 'member',
     },
     User_taskId: [{
             type: mongoose_1.Schema.Types.ObjectId,

@@ -52,7 +52,7 @@ const UserProjectSchema = new mongoose_1.Schema({
     },
     role: {
         type: String,
-        enum: ["teamlead", "Member", "Membercanapprove", "admin"],
+        enum: ["teamlead", "member", "membercanapprove", "admin"],
         default: "Member",
     },
 }, { timestamps: true });

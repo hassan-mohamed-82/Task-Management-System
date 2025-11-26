@@ -31,7 +31,7 @@ export const addUserToTask = async (req: Request, res: Response) => {
   const userTaskId = await UserTaskModel.create({
     user_id: user_id,
     task_id: task_id,
-    role: role || 'Member',
+    role: role || 'member',
     User_taskId: User_taskId,
     status: 'pending',
   });
