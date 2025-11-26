@@ -8,10 +8,11 @@ import { UserProjectModel } from "../../models/schema/User_Project";
 
 
 export const createProject = async (req: Request, res: Response) => {
-  if (!req.user?._id) {
+    const userId = req.user?._id;
+
+  if (!userId) {
     throw new BadRequest("User information is missing in the request");
   }
-  const userId = req.user._id;
   const { name, description } = req.body;
 
   if (!name) throw new BadRequest("Project name is required");
@@ -42,7 +43,7 @@ export const createProject = async (req: Request, res: Response) => {
   }
 
   // 4️⃣ إنشاء المشروع
-  const newProject = await ProjectModel.create({ name, description, userId });
+  const newProject = await ProjectModel.create({ name, description,createdBy: userId });
 
   // 5️⃣ تحديث الاشتراك
   subscription.websites_created_count = currentProjectsCount + 1;
@@ -53,7 +54,8 @@ const useatproject = await UserProjectModel.create({
   user_id: userId,
   project_id: newProject._id,
   role: "admin",
-  email: req.user.email
+  email: req.user?.email
+
 
 });
   

@@ -8,10 +8,10 @@ const project_1 = require("../../models/schema/project");
 const subscriptions_1 = require("../../models/schema/subscriptions");
 const User_Project_1 = require("../../models/schema/User_Project");
 const createProject = async (req, res) => {
-    if (!req.user?._id) {
+    const userId = req.user?._id;
+    if (!userId) {
         throw new BadRequest_1.BadRequest("User information is missing in the request");
     }
-    const userId = req.user._id;
     const { name, description } = req.body;
     if (!name)
         throw new BadRequest_1.BadRequest("Project name is required");
@@ -38,7 +38,7 @@ const createProject = async (req, res) => {
         throw new BadRequest_1.BadRequest("You have reached your project limit for this plan");
     }
     // 4️⃣ إنشاء المشروع
-    const newProject = await project_1.ProjectModel.create({ name, description, userId });
+    const newProject = await project_1.ProjectModel.create({ name, description, createdBy: userId });
     // 5️⃣ تحديث الاشتراك
     subscription.websites_created_count = currentProjectsCount + 1;
     subscription.websites_remaining_count = plan.projects_limit - subscription.websites_created_count;
@@ -47,7 +47,7 @@ const createProject = async (req, res) => {
         user_id: userId,
         project_id: newProject._id,
         role: "admin",
-        email: req.user.email
+        email: req.user?.email
     });
     return (0, response_1.SuccessResponse)(res, {
         message: "Project created successfully",
