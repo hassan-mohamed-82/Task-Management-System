@@ -93,10 +93,11 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
     if (!rejectionReason) throw new NotFound("Rejection reason not found");
 
     await UserRejectedReason.create({
-      userId,
-      reasonId: rejection_reasonId,
-      taskId: userTask.task_id,
-    });
+  userId: userTask.user_id,  // بدل userId الحالي
+  reasonId: rejection_reasonId,
+  taskId: userTask._id,      // احفظ الـ UserTask ID مش الـ task_id الرئيسي
+});
+
 
     if (userTask.User_taskId && userTask.User_taskId.length > 0) {
       await UserTaskModel.updateMany(

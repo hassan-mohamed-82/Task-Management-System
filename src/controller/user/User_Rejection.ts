@@ -17,37 +17,13 @@ export const getuserRejection = async (req: Request, res: Response) => {
     // Populate reasonId
     {
       $lookup: {
-        from: "rejectedresons",
+        from: "rejectedresons", // الاسم الصح
         localField: "reasonId",
         foreignField: "_id",
-        as: "reasonId"
+        as: "reason"
       }
     },
-    { $unwind: "$reasonId" },
-
-    // Populate userId without password
-    {
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "userId"
-      }
-    },
-    { $unwind: "$userId" },
-    {
-      $project: {
-        "reasonId": 1,
-        "taskId": 1,
-        "userId._id": 1,
-        "userId.name": 1,
-        "userId.email": 1,
-        "userId.photo": 1,
-        "createdAt": 1,
-        "updatedAt": 1
-        // كلمة السر مش موجودة هنا → ما هتظهرش
-      }
-    },
+    { $unwind: { path: "$reason", preserveNullAndEmptyArrays: true } },
 
     // Populate taskId
     {
@@ -55,10 +31,37 @@ export const getuserRejection = async (req: Request, res: Response) => {
         from: "tasks",
         localField: "taskId",
         foreignField: "_id",
-        as: "taskId"
+        as: "task"
       }
     },
-    { $unwind: "$taskId" }
+    { $unwind: { path: "$task", preserveNullAndEmptyArrays: true } },
+
+    // Populate userId without password
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+    {
+      $project: {
+        "reason._id": 1,
+        "reason.reason": 1,
+        "reason.points": 1,
+        "task._id": 1,
+        "task.name": 1,
+        "user._id": 1,
+        "user.name": 1,
+        "user.email": 1,
+        "user.photo": 1,
+        "createdAt": 1,
+        "updatedAt": 1
+      }
+    }
   ]);
 
   SuccessResponse(res, {

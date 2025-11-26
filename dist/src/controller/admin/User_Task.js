@@ -82,9 +82,9 @@ const updateUserTaskStatus = async (req, res) => {
         if (!rejectionReason)
             throw new NotFound_1.NotFound("Rejection reason not found");
         await User_Rejection_1.UserRejectedReason.create({
-            userId,
+            userId: userTask.user_id, // بدل userId الحالي
             reasonId: rejection_reasonId,
-            taskId: userTask.task_id,
+            taskId: userTask._id, // احفظ الـ UserTask ID مش الـ task_id الرئيسي
         });
         if (userTask.User_taskId && userTask.User_taskId.length > 0) {
             await User_Task_1.UserTaskModel.updateMany({ _id: { $in: userTask.User_taskId } }, { status: "pending_edit" });
