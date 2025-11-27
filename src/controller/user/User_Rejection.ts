@@ -5,9 +5,6 @@ import { NotFound } from "../../Errors/NotFound";
 import { SuccessResponse } from "../../utils/response";
 import { UserRejectedReason } from "../../models/schema/User_Rejection";
 
-// ------------------------------------
-// 🟢 Get all rejection records for logged-in user
-// ------------------------------------
 export const getuserRejection = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   if (!userId) throw new BadRequest("User not authenticated");
@@ -77,9 +74,7 @@ export const getuserRejection = async (req: Request, res: Response) => {
   });
 };
 
-// ------------------------------------
-// 🟢 Get a single rejection record by ID
-// ------------------------------------
+
 export const getUserRejectionById = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   const { id } = req.params;

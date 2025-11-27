@@ -9,9 +9,6 @@ const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
 const response_1 = require("../../utils/response");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
-// ------------------------------------
-// 🟢 Get all rejection records for logged-in user
-// ------------------------------------
 const getuserRejection = async (req, res) => {
     const userId = req.user?._id;
     if (!userId)
@@ -75,9 +72,6 @@ const getuserRejection = async (req, res) => {
     });
 };
 exports.getuserRejection = getuserRejection;
-// ------------------------------------
-// 🟢 Get a single rejection record by ID
-// ------------------------------------
 const getUserRejectionById = async (req, res) => {
     const userId = req.user?._id;
     const { id } = req.params;
