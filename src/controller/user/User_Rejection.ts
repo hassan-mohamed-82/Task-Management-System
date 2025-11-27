@@ -5,6 +5,9 @@ import { NotFound } from "../../Errors/NotFound";
 import { SuccessResponse } from "../../utils/response";
 import { UserRejectedReason } from "../../models/schema/User_Rejection";
 
+// ------------------------------------
+// 🟢 Get all rejection records for logged-in user
+// ------------------------------------
 export const getuserRejection = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   if (!userId) throw new BadRequest("User not authenticated");
@@ -17,7 +20,7 @@ export const getuserRejection = async (req: Request, res: Response) => {
     // Populate reasonId
     {
       $lookup: {
-        from: "rejectedresons", // الاسم الصح
+        from: "rejectedresons", // تأكد من اسم الـ collection
         localField: "reasonId",
         foreignField: "_id",
         as: "reason"
@@ -28,7 +31,7 @@ export const getuserRejection = async (req: Request, res: Response) => {
     // Populate taskId
     {
       $lookup: {
-        from: "tasks",
+        from: "tasks", // اسم الـ collection للموديل Task
         localField: "taskId",
         foreignField: "_id",
         as: "task"
@@ -36,7 +39,7 @@ export const getuserRejection = async (req: Request, res: Response) => {
     },
     { $unwind: { path: "$task", preserveNullAndEmptyArrays: true } },
 
-    // Populate userId without password
+    // Populate userId
     {
       $lookup: {
         from: "users",
@@ -54,6 +57,10 @@ export const getuserRejection = async (req: Request, res: Response) => {
         "reason.points": 1,
         "task._id": 1,
         "task.name": 1,
+        "task.priority": 1,
+        "task.status": 1,
+        "task.start_date": 1,
+        "task.end_date": 1,
         "user._id": 1,
         "user.name": 1,
         "user.email": 1,
@@ -70,34 +77,32 @@ export const getuserRejection = async (req: Request, res: Response) => {
   });
 };
 
-
+// ------------------------------------
+// 🟢 Get a single rejection record by ID
+// ------------------------------------
 export const getUserRejectionById = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   const { id } = req.params;
 
   if (!id) throw new BadRequest("Rejection ID is required");
+  if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid rejection ID");
 
-  // Validate ID
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new BadRequest("Invalid rejection ID");
-  }
-
-  // Fetch rejection record
   const rejection = await UserRejectedReason.findById(id)
     .populate("reasonId", "reason points")
+    .populate({
+      path: "taskId",
+      select: "name priority status start_date end_date",
+    })
     .populate("userId", "name email photo")
-    .populate("taskId", "name priority status start_date end_date");
+    .lean();
 
-  if (!rejection) {
-    throw new NotFound("Rejection record not found");
-  }
+  if (!rejection) throw new NotFound("Rejection record not found");
 
-  // Make sure this rejection belongs to the logged-in user
-  if (rejection.userId.toString() !== userId?.toString()) {
+  if ((rejection.userId as any)._id.toString() !== userId?.toString()) {
     throw new BadRequest("You are not allowed to view this rejection record");
   }
 
-  return SuccessResponse(res, {
+  SuccessResponse(res, {
     message: "Rejection record retrieved successfully",
     userRejection: rejection
   });

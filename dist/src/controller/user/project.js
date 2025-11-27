@@ -14,19 +14,28 @@ const getProjectDetailsForUser = async (req, res) => {
     if (!user_id || !project_id)
         throw new BadRequest_1.BadRequest("User ID or Project ID missing");
     // التأكد أن المستخدم عضو في المشروع
-    const isMember = await User_Project_1.UserProjectModel.findOne({
-        user_id,
-        project_id,
-    });
+    const isMember = await User_Project_1.UserProjectModel.findOne({ user_id, project_id });
     if (!isMember)
         throw new unauthorizedError_1.UnauthorizedError("You are not part of this project");
     const project = await project_1.ProjectModel.findById(project_id);
     if (!project)
         throw new NotFound_1.NotFound("Project not found");
     const members = await User_Project_1.UserProjectModel.find({ project_id }).populate("user_id", "name email photo role");
-    const tasks = await User_Task_1.UserTaskModel.find({ user_id }).populate({
+    const tasks = await User_Task_1.UserTaskModel.find({ user_id })
+        .populate({
         path: "task_id",
         match: { projectId: project_id },
+    })
+        .populate({
+        path: "User_taskId", // هنا بنجيب الـ sub tasks
+        populate: {
+            path: "task_id", // لو عايز تجيب بيانات الـ task لكل sub task
+            select: "name status priority start_date end_date is_finished",
+        },
+    })
+        .populate({
+        path: "rejection_reasonId",
+        select: "reason points",
     });
     (0, response_1.SuccessResponse)(res, {
         message: "Project details retrieved",
