@@ -3,7 +3,7 @@ import Joi from "joi";
 export const createRejectedResonSchema = Joi.object({
   reason: Joi.string().required(),
   points: Joi.number().required(),
-  createdBy: Joi.string().required(),
+  createdBy: Joi.string().optional(),
 });
 
 export const updateRejectedResonSchema = Joi.object({
