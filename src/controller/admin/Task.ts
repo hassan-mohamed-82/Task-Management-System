@@ -13,14 +13,19 @@ const toPublicPath = (p: string | null) => {
   if (!p) return null;
 
   // نخلي السلاشات كلها /
-  const normalized = p.replace(/\\/g, "/"); // مثال: "D:/Task shit/uploads/tasks/xx.pdf"
+  const normalized = p.replace(/\\/g, "/"); // مثال: "D:/Task shit/dist/uploads/tasks/xx.pdf"
 
   // ندور على uploads/
-  const idx = normalized.toLowerCase().indexOf("uploads/");
+  const lower = normalized.toLowerCase();
+  let idx = lower.indexOf("/uploads/");
+  if (idx === -1) idx = lower.indexOf("uploads/");
   if (idx === -1) return null; // لو مفيش كلمة uploads في المسار
 
-  // نرجع من أول uploads/ لآخر السطر
-  return normalized.substring(idx); // مثال: "uploads/tasks/xx.pdf"
+  // نرجع من بعد الـ / لو موجودة قدام uploads
+  const start = normalized[idx] === "/" ? idx + 1 : idx;
+
+  // مثال الناتج: "uploads/tasks/xx.pdf"
+  return normalized.substring(start);
 };
 
 export const createTask = async (req: Request, res: Response) => {
@@ -54,8 +59,8 @@ export const createTask = async (req: Request, res: Response) => {
 
   // التعامل مع الملفات (pdf أو صوت أو أي نوع) من multer
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-  const filePath = files?.file?.[0]?.path || null;      // مثال: D:\Task shit\uploads\tasks\xxx.pdf
-  const recordPath = files?.recorde?.[0]?.path || null; // مثال: D:\Task shit\uploads\records\yyy.mp3
+  const filePath = files?.file?.[0]?.path || null;      // لوكال: D:\Task... | سيرفر: /var/www/.../dist/uploads/tasks/...
+  const recordPath = files?.recorde?.[0]?.path || null; // نفس الفكرة للتسجيل
 
   const task = new TaskModel({
     name,
@@ -88,6 +93,7 @@ export const createTask = async (req: Request, res: Response) => {
     task: { ...task.toObject(), file: fileUrl, recorde: recordUrl }
   });
 };
+
 
 // --------------------------
 // GET ALL TASKS  (FIXED for SaaS)

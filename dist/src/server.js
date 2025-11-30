@@ -22,7 +22,15 @@ app.use((0, cors_1.default)({ origin: "*" }));
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json({ limit: "20mb" }));
 app.use(express_1.default.urlencoded({ extended: true, limit: "20mb" }));
-app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, "../uploads")));
+// نطبع المسار الحالي
+console.log("__dirname =", __dirname);
+// نحدد فولدر uploads حسب التشغيل (لوكال src ولا dist في السيرفر)
+const uploadsPath = __dirname.includes("dist")
+    ? path_1.default.join(__dirname, "uploads") // في السيرفر: dist/uploads
+    : path_1.default.join(__dirname, "../uploads"); // في اللوكال: ../uploads من src
+console.log("Serving uploads from:", uploadsPath);
+// هنا بنخدم أي files جوه uploads
+app.use("/uploads", express_1.default.static(uploadsPath));
 // Routes
 app.use("/api", routes_1.default);
 // 404 handler
