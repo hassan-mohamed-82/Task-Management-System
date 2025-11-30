@@ -117,10 +117,10 @@ const deleteProjectById = async (req, res) => {
         throw new BadRequest_1.BadRequest("Project ID is required");
     if (!mongoose_1.default.Types.ObjectId.isValid(id))
         throw new BadRequest_1.BadRequest("Invalid Project ID");
-    const project = await project_1.ProjectModel.findOne({ _id: id, createdBy: new mongoose_1.default.Types.ObjectId(userId) });
+    const project = await project_1.ProjectModel.findOneAndDelete({ _id: id, createdBy: new mongoose_1.default.Types.ObjectId(userId) });
     if (!project)
         throw new NotFound_1.NotFound("Project not found");
-    await project_1.ProjectModel.findByIdAndDelete(id);
+    const tasksDeletion = await User_Project_1.UserProjectModel.deleteMany({ project_id: id });
     return (0, response_1.SuccessResponse)(res, {
         message: "Project deleted successfully",
     });

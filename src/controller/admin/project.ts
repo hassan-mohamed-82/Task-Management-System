@@ -6,6 +6,7 @@ import { ProjectModel } from "../../models/schema/project";
 import { SubscriptionModel } from "../../models/schema/subscriptions";
 import { UserProjectModel } from "../../models/schema/User_Project";
 import mongoose from "mongoose";
+import { UserTaskModel } from "../../models/schema/User_Task";
 
 export const createProject = async (req: Request, res: Response) => {
   const userId = req.user?._id;
@@ -119,11 +120,11 @@ export const deleteProjectById = async (req: Request, res: Response) => {
   if (!id) throw new BadRequest("Project ID is required");
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid Project ID");
 
-  const project = await ProjectModel.findOne({ _id: id, createdBy: new mongoose.Types.ObjectId(userId) });
+  const project = await ProjectModel.findOneAndDelete({ _id: id, createdBy: new mongoose.Types.ObjectId(userId) });
   if (!project) throw new NotFound("Project not found");
-
-  await ProjectModel.findByIdAndDelete(id);
-
+  const tasksDeletion = await UserProjectModel.deleteMany({ project_id: id });
+  const userProjectsDeletion = await UserProjectModel.deleteMany({ project_id: id });
+  const Usertaskdeletion = await UserTaskModel.deleteMany({ project_id: id });
   return SuccessResponse(res, {
     message: "Project deleted successfully",
   });
