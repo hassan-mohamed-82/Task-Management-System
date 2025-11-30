@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTask = exports.updateTask = exports.getTaskById = exports.getAllTasks = exports.createTask = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
@@ -42,9 +45,10 @@ const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
 const unauthorizedError_1 = require("../../Errors/unauthorizedError");
 const response_1 = require("../../utils/response");
+const path_1 = __importDefault(require("path"));
 // --------------------------
 // CREATE TASK
-// --------------------------
+// ---------
 const createTask = async (req, res) => {
     const user = req.user?._id;
     if (!user)
@@ -71,7 +75,7 @@ const createTask = async (req, res) => {
         }
     }
     const endDateObj = end_date ? new Date(end_date) : undefined;
-    // التعامل مع الملفات
+    // التعامل مع الملفات (pdf أو صوت أو أي نوع)
     const files = req.files;
     const filePath = files?.file?.[0]?.path || null;
     const recordPath = files?.recorde?.[0]?.path || null;
@@ -87,12 +91,14 @@ const createTask = async (req, res) => {
         createdBy: user,
     });
     await task.save();
-    const protocol = req.protocol;
-    const host = req.get("host");
-    const fileUrl = task.file ? `${protocol}://${host}/${task.file.replace(/\\/g, "/")}` : null;
-    const recordUrl = task.recorde ? `${protocol}://${host}/${task.recorde.replace(/\\/g, "/")}` : null;
+    const fileUrl = task.file
+        ? `${req.protocol}://${req.get("host")}/uploads/${path_1.default.basename(task.file)}`
+        : null;
+    const recordUrl = task.recorde
+        ? `${req.protocol}://${req.get("host")}/uploads/${path_1.default.basename(task.recorde)}`
+        : null;
     (0, response_1.SuccessResponse)(res, {
-        message: 'Task created successfully',
+        message: "Task created successfully",
         task: { ...task.toObject(), file: fileUrl, recorde: recordUrl }
     });
 };

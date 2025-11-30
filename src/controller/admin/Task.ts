@@ -7,10 +7,11 @@ import { BadRequest } from '../../Errors/BadRequest';
 import { NotFound } from '../../Errors/NotFound';
 import { UnauthorizedError } from '../../Errors/unauthorizedError';
 import { SuccessResponse } from '../../utils/response';
+import path from "path";
 
 // --------------------------
 // CREATE TASK
-// --------------------------
+// ---------
 export const createTask = async (req: Request, res: Response) => {
   const user = req.user?._id;
   if (!user) throw new UnauthorizedError("Access denied.");
@@ -25,9 +26,9 @@ export const createTask = async (req: Request, res: Response) => {
   if (!project) throw new NotFound("Project not found");
 
   // تحقق صلاحية المستخدم في المشروع
-  const checkuseratproject = await UserProjectModel.findOne({ 
-    user_id: user, 
-    project_id: projectId 
+  const checkuseratproject = await UserProjectModel.findOne({
+    user_id: user,
+    project_id: projectId
   });
 
   const role = req.user?.role?.toLowerCase();
@@ -40,7 +41,7 @@ export const createTask = async (req: Request, res: Response) => {
 
   const endDateObj = end_date ? new Date(end_date) : undefined;
 
-  // التعامل مع الملفات
+  // التعامل مع الملفات (pdf أو صوت أو أي نوع)
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
   const filePath = files?.file?.[0]?.path || null;
   const recordPath = files?.recorde?.[0]?.path || null;
@@ -59,18 +60,19 @@ export const createTask = async (req: Request, res: Response) => {
 
   await task.save();
 
-  const protocol = req.protocol;
-  const host = req.get("host");
+ const fileUrl = task.file
+  ? `${req.protocol}://${req.get("host")}/uploads/${path.basename(task.file)}`
+  : null;
 
-  const fileUrl = task.file ? `${protocol}://${host}/${task.file.replace(/\\/g, "/")}` : null;
-  const recordUrl = task.recorde ? `${protocol}://${host}/${task.recorde.replace(/\\/g, "/")}` : null;
+const recordUrl = task.recorde
+  ? `${req.protocol}://${req.get("host")}/uploads/${path.basename(task.recorde)}`
+  : null;
 
   SuccessResponse(res, {
-    message: 'Task created successfully',
+    message: "Task created successfully",
     task: { ...task.toObject(), file: fileUrl, recorde: recordUrl }
   });
 };
-
 // --------------------------
 // GET ALL TASKS  (FIXED for SaaS)
 // --------------------------
