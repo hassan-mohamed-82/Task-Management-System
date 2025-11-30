@@ -5,7 +5,7 @@ import { IUser } from "./auth/User";
 export interface IUserTask extends Document {
   user_id: mongoose.Types.ObjectId;
   task_id: mongoose.Types.ObjectId;
-  status?:'pending' | 'in_progress' | 'done' | 'Approved from Member_can_approve' | 'rejected' | 'Pending_edit' | 'in_progress_edit' | 'approved' ;
+  status?:'pending' | 'in_progress' | 'done' | 'Approved from Member_can_approve' | 'rejected from Member_can_rejected' | 'Pending_edit' | 'in_progress_edit' ;
   rejection_reasonId:mongoose.Types.ObjectId;
 User_taskId: mongoose.Types.ObjectId[];
   is_finished?: boolean;
@@ -26,7 +26,7 @@ const UserTaskSchema = new Schema<IUserTask>(
     },
     status: {
       type: String,
-     enum: ['pending', 'in_progress', 'done', 'pending_edit',"in_progress_edit", 'Approved from Member_can_approve', 'rejected', 'approved'],
+     enum: ['pending', 'in_progress', 'done', 'pending_edit',"in_progress_edit", 'Approved from Member_can_approve', 'rejected from Member_can_rejected'],
       required: true,
     },
     is_finished: {

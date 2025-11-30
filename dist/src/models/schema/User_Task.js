@@ -48,7 +48,7 @@ const UserTaskSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'in_progress', 'done', 'pending_edit', "in_progress_edit", 'Approved from Member_can_approve', 'rejected', 'approved'],
+        enum: ['pending', 'in_progress', 'done', 'pending_edit', "in_progress_edit", 'Approved from Member_can_approve', 'rejected from Member_can_rejected'],
         required: true,
     },
     is_finished: {
