@@ -14,6 +14,24 @@ import { UserRejectedReason } from "../../models/schema/User_Rejection";
 import { TaskModel } from "../../models/schema/Tasks";
 import { RejectedReson } from "../../models/schema/RejectdReson";
 
+const toPublicPath = (p: string | null | undefined) => {
+  if (!p) return null;
+
+  // نخلي السلاشات كلها /
+  const normalized = p.replace(/\\/g, "/"); // مثال: "D:/Task shit/dist/uploads/tasks/xx.pdf"
+
+  // ندور على uploads/
+  const lower = normalized.toLowerCase();
+  let idx = lower.indexOf("/uploads/");
+  if (idx === -1) idx = lower.indexOf("uploads/");
+  if (idx === -1) return null; // لو مفيش كلمة uploads في المسار
+
+  // نرجع من بعد الـ / لو موجودة قدام uploads
+  const start = normalized[idx] === "/" ? idx + 1 : idx;
+
+  // مثال الناتج: "uploads/tasks/xx.pdf"
+  return normalized.substring(start);
+};
 export const getalltaskatprojectforuser = async (req: Request, res: Response) => {
     const userId = req.user?._id;
     if (!userId) throw new BadRequest("User ID is required");
@@ -196,3 +214,33 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
 };
 
 
+
+export const getusertaskattaskbyid = async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+
+  if (!userId) throw new BadRequest("User ID is required");
+  const { taskId } = req.params; // ده في الحقيقة UserTask ID
+  if (!taskId) throw new BadRequest("Task ID is required");
+
+  if (!mongoose.Types.ObjectId.isValid(taskId)) {
+    throw new BadRequest("Invalid Task ID");
+  }
+  // نجيب الـ UserTask ونتأكد إنها فعلاً بتاعة اليوزر ده
+  const userTask = await UserTaskModel.findOne({
+    _id: taskId,
+    user_id: userId,
+  })
+    .populate("user_id", "name email")
+    .populate("task_id", "name description status priority start_date end_date is_finished file recorde");
+  if (!userTask) throw new NotFound("UserTask not found for this user");
+  const allowedroles = [ "member","membercanapprove", "teamlead", "admin"];
+  const role = String(userTask.role || "").toLowerCase();
+  if (!allowedroles.includes(role)) {
+    throw new UnauthorizedError("You are not allowed to access this task");
+  }
+  return SuccessResponse(res, {
+    message: "UserTask fetched successfully",
+    task: userTask,
+  });
+
+}

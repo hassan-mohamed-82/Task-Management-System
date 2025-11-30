@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserTaskStatus = exports.getalltaskatprojectforuser = void 0;
+exports.getusertaskattaskbyid = exports.updateUserTaskStatus = exports.getalltaskatprojectforuser = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
@@ -15,6 +15,23 @@ const User_Task_1 = require("../../models/schema/User_Task");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
 const Tasks_1 = require("../../models/schema/Tasks");
 const RejectdReson_1 = require("../../models/schema/RejectdReson");
+const toPublicPath = (p) => {
+    if (!p)
+        return null;
+    // نخلي السلاشات كلها /
+    const normalized = p.replace(/\\/g, "/"); // مثال: "D:/Task shit/dist/uploads/tasks/xx.pdf"
+    // ندور على uploads/
+    const lower = normalized.toLowerCase();
+    let idx = lower.indexOf("/uploads/");
+    if (idx === -1)
+        idx = lower.indexOf("uploads/");
+    if (idx === -1)
+        return null; // لو مفيش كلمة uploads في المسار
+    // نرجع من بعد الـ / لو موجودة قدام uploads
+    const start = normalized[idx] === "/" ? idx + 1 : idx;
+    // مثال الناتج: "uploads/tasks/xx.pdf"
+    return normalized.substring(start);
+};
 const getalltaskatprojectforuser = async (req, res) => {
     const userId = req.user?._id;
     if (!userId)
@@ -167,3 +184,33 @@ const updateUserTaskStatus = async (req, res) => {
     });
 };
 exports.updateUserTaskStatus = updateUserTaskStatus;
+const getusertaskattaskbyid = async (req, res) => {
+    const userId = req.user?._id;
+    if (!userId)
+        throw new BadRequest_1.BadRequest("User ID is required");
+    const { taskId } = req.params; // ده في الحقيقة UserTask ID
+    if (!taskId)
+        throw new BadRequest_1.BadRequest("Task ID is required");
+    if (!mongoose_1.default.Types.ObjectId.isValid(taskId)) {
+        throw new BadRequest_1.BadRequest("Invalid Task ID");
+    }
+    // نجيب الـ UserTask ونتأكد إنها فعلاً بتاعة اليوزر ده
+    const userTask = await User_Task_1.UserTaskModel.findOne({
+        _id: taskId,
+        user_id: userId,
+    })
+        .populate("user_id", "name email")
+        .populate("task_id", "name description status priority start_date end_date is_finished file recorde");
+    if (!userTask)
+        throw new NotFound_1.NotFound("UserTask not found for this user");
+    const allowedroles = ["member", "membercanapprove", "teamlead", "admin"];
+    const role = String(userTask.role || "").toLowerCase();
+    if (!allowedroles.includes(role)) {
+        throw new unauthorizedError_1.UnauthorizedError("You are not allowed to access this task");
+    }
+    return (0, response_1.SuccessResponse)(res, {
+        message: "UserTask fetched successfully",
+        task: userTask,
+    });
+};
+exports.getusertaskattaskbyid = getusertaskattaskbyid;
