@@ -8,7 +8,6 @@ route.put("/:taskId",
 route.get("/:project_id" ,
     catchAsync(getalltaskatprojectforuser));
 route.get("/task/:taskId", 
-    checkProjectOrTaskRole(['member','membercanapprove', 'teamlead', 'admin']),
     catchAsync(getusertaskattaskbyid));
 
 export default route;
