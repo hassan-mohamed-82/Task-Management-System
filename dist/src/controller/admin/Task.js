@@ -32,9 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTask = exports.updateTask = exports.getTaskById = exports.getAllTasks = exports.createTask = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
@@ -45,7 +42,6 @@ const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
 const unauthorizedError_1 = require("../../Errors/unauthorizedError");
 const response_1 = require("../../utils/response");
-const path_1 = __importDefault(require("path"));
 // --------------------------
 // CREATE TASK
 // ---------
@@ -58,11 +54,9 @@ const createTask = async (req, res) => {
         throw new BadRequest_1.BadRequest("Task name is required");
     if (!projectId)
         throw new BadRequest_1.BadRequest("Project ID is required");
-    // تأكد أن المشروع موجود
     const project = await project_1.ProjectModel.findById(projectId);
     if (!project)
         throw new NotFound_1.NotFound("Project not found");
-    // تحقق صلاحية المستخدم في المشروع
     const checkuseratproject = await User_Project_1.UserProjectModel.findOne({
         user_id: user,
         project_id: projectId
@@ -75,10 +69,9 @@ const createTask = async (req, res) => {
         }
     }
     const endDateObj = end_date ? new Date(end_date) : undefined;
-    // التعامل مع الملفات (pdf أو صوت أو أي نوع)
     const files = req.files;
-    const filePath = files?.file?.[0]?.path || null;
-    const recordPath = files?.recorde?.[0]?.path || null;
+    const filePath = files?.file?.[0]?.path || null; // مثال: "uploads/files/xxx.pdf"
+    const recordPath = files?.recorde?.[0]?.path || null; // مثال: "uploads/records/yyy.mp3"
     const task = new Tasks_1.TaskModel({
         name,
         description,
@@ -91,11 +84,13 @@ const createTask = async (req, res) => {
         createdBy: user,
     });
     await task.save();
+    // استخدم المسار كامل، مع تعديل الباك سلاش لو السيرفر ويندوز
+    const normalizePath = (p) => p ? p.replace(/\\/g, "/") : null;
     const fileUrl = task.file
-        ? `${req.protocol}://${req.get("host")}/uploads/${path_1.default.basename(task.file)}`
+        ? `${req.protocol}://${req.get("host")}/${normalizePath(task.file)}`
         : null;
     const recordUrl = task.recorde
-        ? `${req.protocol}://${req.get("host")}/uploads/${path_1.default.basename(task.recorde)}`
+        ? `${req.protocol}://${req.get("host")}/${normalizePath(task.recorde)}`
         : null;
     (0, response_1.SuccessResponse)(res, {
         message: "Task created successfully",

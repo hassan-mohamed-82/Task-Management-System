@@ -12,6 +12,7 @@ import path from "path";
 // --------------------------
 // CREATE TASK
 // ---------
+
 export const createTask = async (req: Request, res: Response) => {
   const user = req.user?._id;
   if (!user) throw new UnauthorizedError("Access denied.");
@@ -21,11 +22,9 @@ export const createTask = async (req: Request, res: Response) => {
   if (!name) throw new BadRequest("Task name is required");
   if (!projectId) throw new BadRequest("Project ID is required");
 
-  // تأكد أن المشروع موجود
   const project = await ProjectModel.findById(projectId);
   if (!project) throw new NotFound("Project not found");
 
-  // تحقق صلاحية المستخدم في المشروع
   const checkuseratproject = await UserProjectModel.findOne({
     user_id: user,
     project_id: projectId
@@ -41,10 +40,9 @@ export const createTask = async (req: Request, res: Response) => {
 
   const endDateObj = end_date ? new Date(end_date) : undefined;
 
-  // التعامل مع الملفات (pdf أو صوت أو أي نوع)
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-  const filePath = files?.file?.[0]?.path || null;
-  const recordPath = files?.recorde?.[0]?.path || null;
+  const filePath = files?.file?.[0]?.path || null;      // مثال: "uploads/files/xxx.pdf"
+  const recordPath = files?.recorde?.[0]?.path || null; // مثال: "uploads/records/yyy.mp3"
 
   const task = new TaskModel({
     name,
@@ -60,19 +58,24 @@ export const createTask = async (req: Request, res: Response) => {
 
   await task.save();
 
- const fileUrl = task.file
-  ? `${req.protocol}://${req.get("host")}/uploads/${path.basename(task.file)}`
-  : null;
+  // استخدم المسار كامل، مع تعديل الباك سلاش لو السيرفر ويندوز
+  const normalizePath = (p: string | null) =>
+    p ? p.replace(/\\/g, "/") : null;
 
-const recordUrl = task.recorde
-  ? `${req.protocol}://${req.get("host")}/uploads/${path.basename(task.recorde)}`
-  : null;
+  const fileUrl = task.file
+    ? `${req.protocol}://${req.get("host")}/${normalizePath(task.file)}`
+    : null;
+
+  const recordUrl = task.recorde
+    ? `${req.protocol}://${req.get("host")}/${normalizePath(task.recorde)}`
+    : null;
 
   SuccessResponse(res, {
     message: "Task created successfully",
     task: { ...task.toObject(), file: fileUrl, recorde: recordUrl }
   });
 };
+
 // --------------------------
 // GET ALL TASKS  (FIXED for SaaS)
 // --------------------------
