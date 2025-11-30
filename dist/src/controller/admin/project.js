@@ -11,6 +11,7 @@ const project_1 = require("../../models/schema/project");
 const subscriptions_1 = require("../../models/schema/subscriptions");
 const User_Project_1 = require("../../models/schema/User_Project");
 const mongoose_1 = __importDefault(require("mongoose"));
+const User_Task_1 = require("../../models/schema/User_Task");
 const createProject = async (req, res) => {
     const userId = req.user?._id;
     if (!userId)
@@ -121,6 +122,8 @@ const deleteProjectById = async (req, res) => {
     if (!project)
         throw new NotFound_1.NotFound("Project not found");
     const tasksDeletion = await User_Project_1.UserProjectModel.deleteMany({ project_id: id });
+    const userProjectsDeletion = await User_Project_1.UserProjectModel.deleteMany({ project_id: id });
+    const Usertaskdeletion = await User_Task_1.UserTaskModel.deleteMany({ project_id: id });
     return (0, response_1.SuccessResponse)(res, {
         message: "Project deleted successfully",
     });

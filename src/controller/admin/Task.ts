@@ -7,6 +7,7 @@ import { BadRequest } from "../../Errors/BadRequest";
 import { ProjectModel } from "../../models/schema/project";
 import { TaskModel } from "../../models/schema/Tasks";
 import { UserProjectModel } from "../../models/schema/User_Project";
+import { UserTaskModel } from "../../models/schema/User_Task";
 
 // دالة لتحويل مسار الملف لمسار عام يبدأ من uploads/...
 const toPublicPath = (p: string | null | undefined) => {
@@ -239,6 +240,7 @@ export const deleteTask = async (req: Request, res: Response) => {
     throw new UnauthorizedError("You don't have permission to delete this task");
 
   await TaskModel.findByIdAndDelete(id);
+  await UserTaskModel.deleteMany({ task_id: id });
 
   SuccessResponse(res, { message: "Task deleted successfully" });
 };

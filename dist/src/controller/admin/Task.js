@@ -41,6 +41,7 @@ const BadRequest_1 = require("../../Errors/BadRequest");
 const project_1 = require("../../models/schema/project");
 const Tasks_1 = require("../../models/schema/Tasks");
 const User_Project_1 = require("../../models/schema/User_Project");
+const User_Task_1 = require("../../models/schema/User_Task");
 // دالة لتحويل مسار الملف لمسار عام يبدأ من uploads/...
 const toPublicPath = (p) => {
     if (!p)
@@ -241,6 +242,7 @@ const deleteTask = async (req, res) => {
     if (!["admin", "teamlead"].includes(role))
         throw new Errors_1.UnauthorizedError("You don't have permission to delete this task");
     await Tasks_1.TaskModel.findByIdAndDelete(id);
+    await User_Task_1.UserTaskModel.deleteMany({ task_id: id });
     (0, response_1.SuccessResponse)(res, { message: "Task deleted successfully" });
 };
 exports.deleteTask = deleteTask;
