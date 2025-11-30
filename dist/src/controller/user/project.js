@@ -44,13 +44,13 @@ const getProjectDetailsForUser = async (req, res) => {
         path: "task_id",
         match: { projectId: project_id },
         // نضمن إن file و recorde جايين
-        select: "name status priority start_date end_date is_finished file recorde",
+        select: "name description status priority start_date end_date is_finished file recorde",
     })
         .populate({
         path: "User_taskId", // هنا بنجيب الـ sub tasks
         populate: {
             path: "task_id", // بيانات الـ task لكل sub task
-            select: "name status priority start_date end_date is_finished file recorde",
+            select: "name description status priority start_date end_date is_finished file recorde",
         },
     })
         .populate({
