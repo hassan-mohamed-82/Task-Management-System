@@ -5,6 +5,7 @@ import paymentMethodRouter from "./payment_method";
 import ProjectRouter from './Project'
 import plansRouter from "./plans";
  import TaskeRouter from "./Taske";
+ import profileRouter from "./profile";
 import userRejectionRouter from "./User_Rejection";
 import { authenticated } from "../../middlewares/authenticated";
 import { authorizeRoles } from "../../middlewares/authorized";
@@ -14,6 +15,7 @@ route.use("/auth", authRouter);
 route.use(authenticated, authorizeRoles('user','admin'));
 route.use("/payment-methods", paymentMethodRouter);
 route.use("/payments", paymentRouter);
+route.use("/profile", profileRouter);
 route.use("/plans", plansRouter);
 route.use("/user-rejections", userRejectionRouter);
 route.use("/projects",

@@ -5,6 +5,7 @@ import SubscriptionRouter from "./subscription";
 import TaskeRouter from "./Task";
 import DepartmentRouter from "./Department";
 import RejectedResonRouter from "./RejectdReson";
+import profileRouter from "./profile";
  import UserProjectRouter from "./User_Project";
 import usertaskRouter from "./User_Task";
 import { authenticated } from "../../middlewares/authenticated";
@@ -41,6 +42,7 @@ route.use(
 );
 
  authorizeRoles('admin')
+route.use("/profile", profileRouter);
 route.use("/project", projectRouter);
 route.use("/subscriptions", SubscriptionRouter);
 route.use("/departments", DepartmentRouter);
