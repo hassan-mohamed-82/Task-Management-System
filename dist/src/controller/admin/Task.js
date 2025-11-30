@@ -59,6 +59,12 @@ const toPublicPath = (p) => {
     // مثال الناتج: "uploads/tasks/xx.pdf"
     return normalized.substring(start);
 };
+const buildUrl = (p, req) => {
+    const publicPath = toPublicPath(p);
+    if (!publicPath)
+        return null;
+    return `${req.protocol}://${req.get("host")}/${publicPath}`;
+};
 const createTask = async (req, res) => {
     const user = req.user?._id;
     if (!user)
@@ -119,22 +125,28 @@ exports.createTask = createTask;
 // --------------------------
 // GET ALL TASKS  (FIXED for SaaS)
 // --------------------------
-const getAllTasks = async (_req, res) => {
-    const user = _req.user?._id;
+const getAllTasks = async (req, res) => {
+    const user = req.user?._id;
     if (!user)
-        throw new Errors_1.UnauthorizedError('Access denied.');
+        throw new Errors_1.UnauthorizedError("Access denied.");
     // هات كل المشاريع اللي المستخدم موجود فيها
     const userProjects = await User_Project_1.UserProjectModel.find({ user_id: user });
     if (!userProjects.length)
         throw new Errors_1.UnauthorizedError("You are not assigned to any project.");
-    // IDs of projects user is part of
     const projectIds = userProjects.map((p) => p.project_id);
     // هات التاسكات الخاصة بالمشاريع دي فقط
-    const tasks = await Tasks_1.TaskModel.find({ projectId: { $in: projectIds } })
-        .populate('projectId')
-        .populate('Depatment_id')
-        .populate('createdBy', 'name email');
-    (0, response_1.SuccessResponse)(res, { message: 'Tasks fetched successfully', tasks });
+    let tasks = await Tasks_1.TaskModel.find({ projectId: { $in: projectIds } })
+        .populate("projectId")
+        .populate("Depatment_id")
+        .populate("createdBy", "name email")
+        .lean();
+    // ظبط الـ file / recorde URLs
+    tasks = tasks.map((t) => ({
+        ...t,
+        file: buildUrl(t.file, req),
+        recorde: buildUrl(t.recorde, req),
+    }));
+    (0, response_1.SuccessResponse)(res, { message: "Tasks fetched successfully", tasks });
 };
 exports.getAllTasks = getAllTasks;
 // --------------------------
@@ -143,14 +155,20 @@ exports.getAllTasks = getAllTasks;
 const getTaskById = async (req, res) => {
     const { id } = req.params;
     if (!mongoose_1.default.Types.ObjectId.isValid(id))
-        throw new BadRequest_1.BadRequest('Invalid Task ID');
-    const task = await Tasks_1.TaskModel.findById(id)
-        .populate('projectId')
-        .populate('Depatment_id')
-        .populate('createdBy', 'name email');
-    if (!task)
-        throw new Errors_1.NotFound('Task not found');
-    (0, response_1.SuccessResponse)(res, { message: 'Task fetched successfully', task });
+        throw new BadRequest_1.BadRequest("Invalid Task ID");
+    const taskDoc = await Tasks_1.TaskModel.findById(id)
+        .populate("projectId")
+        .populate("Depatment_id")
+        .populate("createdBy", "name email")
+        .lean();
+    if (!taskDoc)
+        throw new Errors_1.NotFound("Task not found");
+    const task = {
+        ...taskDoc,
+        file: buildUrl(taskDoc.file, req),
+        recorde: buildUrl(taskDoc.recorde, req),
+    };
+    (0, response_1.SuccessResponse)(res, { message: "Task fetched successfully", task });
 };
 exports.getTaskById = getTaskById;
 // --------------------------
@@ -173,27 +191,34 @@ const updateTask = async (req, res) => {
     });
     if (!userProject)
         throw new Errors_1.UnauthorizedError("You are not assigned to this project");
-    const role = (userProject.role || '').toLowerCase();
+    const role = (userProject.role || "").toLowerCase();
     // فقط admin + teamlead يسمح لهم بالتعديل
     if (!["admin", "teamlead"].includes(role))
         throw new Errors_1.UnauthorizedError("You don't have permission to update this task");
-    // تحديث البيانات
-    const updates = req.body;
+    const updates = { ...req.body };
+    // ملف جديد من multer
     if (req.file)
         updates.file = req.file.path;
+    // تسجيل جديد لو جاي كنص
     if (req.body.recorde)
         updates.recorde = req.body.recorde;
     Object.assign(task, updates);
     await task.save();
+    const taskObj = task.toObject();
+    const responseTask = {
+        ...taskObj,
+        file: buildUrl(taskObj.file, req),
+        recorde: buildUrl(taskObj.recorde, req),
+    };
     (0, response_1.SuccessResponse)(res, {
         message: "Task updated successfully",
-        task
+        task: responseTask,
     });
 };
 exports.updateTask = updateTask;
-// --------------------------
+// ==========================
 // DELETE TASK
-// --------------------------
+// ==========================
 const deleteTask = async (req, res) => {
     const userId = req.user?._id;
     if (!userId)
@@ -211,7 +236,7 @@ const deleteTask = async (req, res) => {
     });
     if (!userProject)
         throw new Errors_1.UnauthorizedError("You are not assigned to this project");
-    const role = (userProject.role || '').toLowerCase();
+    const role = (userProject.role || "").toLowerCase();
     // فقط admin + teamlead يسمح لهم بالحذف
     if (!["admin", "teamlead"].includes(role))
         throw new Errors_1.UnauthorizedError("You don't have permission to delete this task");

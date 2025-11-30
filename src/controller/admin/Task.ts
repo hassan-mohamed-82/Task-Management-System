@@ -9,7 +9,7 @@ import { TaskModel } from "../../models/schema/Tasks";
 import { UserProjectModel } from "../../models/schema/User_Project";
 
 // دالة لتحويل مسار الملف لمسار عام يبدأ من uploads/...
-const toPublicPath = (p: string | null) => {
+const toPublicPath = (p: string | null | undefined) => {
   if (!p) return null;
 
   // نخلي السلاشات كلها /
@@ -27,6 +27,13 @@ const toPublicPath = (p: string | null) => {
   // مثال الناتج: "uploads/tasks/xx.pdf"
   return normalized.substring(start);
 };
+
+const buildUrl = (p: string | null | undefined, req: Request) => {
+  const publicPath = toPublicPath(p);
+  if (!publicPath) return null;
+  return `${req.protocol}://${req.get("host")}/${publicPath}`;
+};
+
 
 export const createTask = async (req: Request, res: Response) => {
   const user = req.user?._id;
@@ -98,9 +105,9 @@ export const createTask = async (req: Request, res: Response) => {
 // --------------------------
 // GET ALL TASKS  (FIXED for SaaS)
 // --------------------------
-export const getAllTasks = async (_req: Request, res: Response) => {
-  const user = _req.user?._id;
-  if (!user) throw new UnauthorizedError('Access denied.');
+export const getAllTasks = async (req: Request, res: Response) => {
+  const user = req.user?._id;
+  if (!user) throw new UnauthorizedError("Access denied.");
 
   // هات كل المشاريع اللي المستخدم موجود فيها
   const userProjects = await UserProjectModel.find({ user_id: user });
@@ -108,34 +115,48 @@ export const getAllTasks = async (_req: Request, res: Response) => {
   if (!userProjects.length)
     throw new UnauthorizedError("You are not assigned to any project.");
 
-  // IDs of projects user is part of
   const projectIds = userProjects.map((p) => p.project_id);
 
   // هات التاسكات الخاصة بالمشاريع دي فقط
-  const tasks = await TaskModel.find({ projectId: { $in: projectIds } })
-    .populate('projectId')
-    .populate('Depatment_id')
-    .populate('createdBy', 'name email');
+  let tasks = await TaskModel.find({ projectId: { $in: projectIds } })
+    .populate("projectId")
+    .populate("Depatment_id")
+    .populate("createdBy", "name email")
+    .lean();
 
-  SuccessResponse(res, { message: 'Tasks fetched successfully', tasks });
+  // ظبط الـ file / recorde URLs
+  tasks = tasks.map((t: any) => ({
+    ...t,
+    file: buildUrl(t.file, req),
+    recorde: buildUrl(t.recorde, req),
+  }));
+
+  SuccessResponse(res, { message: "Tasks fetched successfully", tasks });
 };
-
 // --------------------------
 // GET TASK BY ID
 // --------------------------
 export const getTaskById = async (req: Request, res: Response) => {
   const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest('Invalid Task ID');
+  if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid Task ID");
 
-  const task = await TaskModel.findById(id)
-    .populate('projectId')
-    .populate('Depatment_id')
-    .populate('createdBy', 'name email');
+  const taskDoc = await TaskModel.findById(id)
+    .populate("projectId")
+    .populate("Depatment_id")
+    .populate("createdBy", "name email")
+    .lean();
 
-  if (!task) throw new NotFound('Task not found');
+  if (!taskDoc) throw new NotFound("Task not found");
 
-  SuccessResponse(res, { message: 'Task fetched successfully', task });
+  const task = {
+    ...taskDoc,
+    file: buildUrl((taskDoc as any).file, req),
+    recorde: buildUrl((taskDoc as any).recorde, req),
+  };
+
+  SuccessResponse(res, { message: "Task fetched successfully", task });
 };
+
 
 // --------------------------
 // UPDATE TASK
@@ -159,30 +180,39 @@ export const updateTask = async (req: Request, res: Response) => {
   if (!userProject)
     throw new UnauthorizedError("You are not assigned to this project");
 
-  const role = (userProject.role || '').toLowerCase();
+  const role = (userProject.role || "").toLowerCase();
 
   // فقط admin + teamlead يسمح لهم بالتعديل
   if (!["admin", "teamlead"].includes(role))
     throw new UnauthorizedError("You don't have permission to update this task");
 
-  // تحديث البيانات
-  const updates = req.body;
+  const updates: any = { ...req.body };
 
+  // ملف جديد من multer
   if (req.file) updates.file = req.file.path;
+  // تسجيل جديد لو جاي كنص
   if (req.body.recorde) updates.recorde = req.body.recorde;
 
   Object.assign(task, updates);
   await task.save();
 
+  const taskObj = task.toObject();
+
+  const responseTask = {
+    ...taskObj,
+    file: buildUrl(taskObj.file, req),
+    recorde: buildUrl(taskObj.recorde, req),
+  };
+
   SuccessResponse(res, {
     message: "Task updated successfully",
-    task
+    task: responseTask,
   });
 };
 
-// --------------------------
+// ==========================
 // DELETE TASK
-// --------------------------
+// ==========================
 export const deleteTask = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   if (!userId) throw new UnauthorizedError("Access denied.");
@@ -202,7 +232,7 @@ export const deleteTask = async (req: Request, res: Response) => {
   if (!userProject)
     throw new UnauthorizedError("You are not assigned to this project");
 
-  const role = (userProject.role || '').toLowerCase();
+  const role = (userProject.role || "").toLowerCase();
 
   // فقط admin + teamlead يسمح لهم بالحذف
   if (!["admin", "teamlead"].includes(role))
