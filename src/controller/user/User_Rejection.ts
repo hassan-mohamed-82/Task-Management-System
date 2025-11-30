@@ -4,75 +4,29 @@ import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { SuccessResponse } from "../../utils/response";
 import { UserRejectedReason } from "../../models/schema/User_Rejection";
+import { UnauthorizedError } from "../../Errors";
 
 export const getuserRejection = async (req: Request, res: Response) => {
   const userId = req.user?._id;
   if (!userId) throw new BadRequest("User not authenticated");
 
-  const objectUserId = new mongoose.Types.ObjectId(userId);
-
-  const userRejection = await UserRejectedReason.aggregate([
-    { $match: { userId: objectUserId } },
-
-    // Populate reasonId
-    {
-      $lookup: {
-        from: "rejectedresons", // تأكد من اسم الـ collection
-        localField: "reasonId",
-        foreignField: "_id",
-        as: "reason"
-      }
-    },
-    { $unwind: { path: "$reason", preserveNullAndEmptyArrays: true } },
-
-    // Populate taskId
-    {
-      $lookup: {
-        from: "tasks", // اسم الـ collection للموديل Task
-        localField: "taskId",
-        foreignField: "_id",
-        as: "task"
-      }
-    },
-    { $unwind: { path: "$task", preserveNullAndEmptyArrays: true } },
-
-    // Populate userId
-    {
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user"
-      }
-    },
-    { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-
-    {
-      $project: {
-        "reason._id": 1,
-        "reason.reason": 1,
-        "reason.points": 1,
-        "task._id": 1,
-        "task.name": 1,
-        "task.priority": 1,
-        "task.status": 1,
-        "task.start_date": 1,
-        "task.end_date": 1,
-        "user._id": 1,
-        "user.name": 1,
-        "user.email": 1,
-        "user.photo": 1,
-        "createdAt": 1,
-        "updatedAt": 1
-      }
-    }
-  ]);
+  const userRejection = await UserRejectedReason.find({ userId })
+    .populate("reasonId", "reason points")
+    .populate({
+      path: "taskId",
+      model: "Task", // تأكد إن اسم الموديل "Task"
+      select: "name priority status start_date end_date",
+    })
+    .populate("userId", "name email photo")
+    .sort({ createdAt: -1 })
+    .lean();
 
   SuccessResponse(res, {
     message: "User rejection records retrieved successfully",
-    userRejection
+    userRejection,
   });
 };
+
 
 
 export const getUserRejectionById = async (req: Request, res: Response) => {
@@ -82,10 +36,21 @@ export const getUserRejectionById = async (req: Request, res: Response) => {
   if (!id) throw new BadRequest("Rejection ID is required");
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid rejection ID");
 
+  // مبدئيًا نجيب الريكورد عشان نتأكد من الـ taskId قبل الـ populate (للدبج)
+  const raw = await UserRejectedReason.findById(id);
+  if (!raw) throw new NotFound("Rejection record not found");
+
+  // لو مفيش taskId أصلاً في الريكورد، نرجع خطأ واضح
+  if (!raw.taskId) {
+    throw new NotFound("No task is linked to this rejection record");
+  }
+
+  // هنا الـ populate
   const rejection = await UserRejectedReason.findById(id)
-    .populate("reasonId", "reason points")
+    .populate("reasonId", "reason points") // RejectedReson
     .populate({
       path: "taskId",
+      model: "Task", // اسم موديل التاسك
       select: "name priority status start_date end_date",
     })
     .populate("userId", "name email photo")
@@ -93,12 +58,18 @@ export const getUserRejectionById = async (req: Request, res: Response) => {
 
   if (!rejection) throw new NotFound("Rejection record not found");
 
+  // تأكد إن اليوزر هو صاحب الريكورد
   if ((rejection.userId as any)._id.toString() !== userId?.toString()) {
-    throw new BadRequest("You are not allowed to view this rejection record");
+    throw new UnauthorizedError("You are not allowed to view this rejection record");
+  }
+
+  // لو رغم كل ده، الـ populate رجّع taskId = null
+  if (!rejection.taskId) {
+    throw new NotFound("Task linked to this rejection record was not found");
   }
 
   SuccessResponse(res, {
     message: "Rejection record retrieved successfully",
-    userRejection: rejection
+    userRejection: rejection,
   });
 };

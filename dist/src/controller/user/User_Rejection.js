@@ -9,66 +9,24 @@ const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
 const response_1 = require("../../utils/response");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
+const Errors_1 = require("../../Errors");
 const getuserRejection = async (req, res) => {
     const userId = req.user?._id;
     if (!userId)
         throw new BadRequest_1.BadRequest("User not authenticated");
-    const objectUserId = new mongoose_1.default.Types.ObjectId(userId);
-    const userRejection = await User_Rejection_1.UserRejectedReason.aggregate([
-        { $match: { userId: objectUserId } },
-        // Populate reasonId
-        {
-            $lookup: {
-                from: "rejectedresons", // تأكد من اسم الـ collection
-                localField: "reasonId",
-                foreignField: "_id",
-                as: "reason"
-            }
-        },
-        { $unwind: { path: "$reason", preserveNullAndEmptyArrays: true } },
-        // Populate taskId
-        {
-            $lookup: {
-                from: "tasks", // اسم الـ collection للموديل Task
-                localField: "taskId",
-                foreignField: "_id",
-                as: "task"
-            }
-        },
-        { $unwind: { path: "$task", preserveNullAndEmptyArrays: true } },
-        // Populate userId
-        {
-            $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "user"
-            }
-        },
-        { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-        {
-            $project: {
-                "reason._id": 1,
-                "reason.reason": 1,
-                "reason.points": 1,
-                "task._id": 1,
-                "task.name": 1,
-                "task.priority": 1,
-                "task.status": 1,
-                "task.start_date": 1,
-                "task.end_date": 1,
-                "user._id": 1,
-                "user.name": 1,
-                "user.email": 1,
-                "user.photo": 1,
-                "createdAt": 1,
-                "updatedAt": 1
-            }
-        }
-    ]);
+    const userRejection = await User_Rejection_1.UserRejectedReason.find({ userId })
+        .populate("reasonId", "reason points")
+        .populate({
+        path: "taskId",
+        model: "Task", // تأكد إن اسم الموديل "Task"
+        select: "name priority status start_date end_date",
+    })
+        .populate("userId", "name email photo")
+        .sort({ createdAt: -1 })
+        .lean();
     (0, response_1.SuccessResponse)(res, {
         message: "User rejection records retrieved successfully",
-        userRejection
+        userRejection,
     });
 };
 exports.getuserRejection = getuserRejection;
@@ -79,22 +37,37 @@ const getUserRejectionById = async (req, res) => {
         throw new BadRequest_1.BadRequest("Rejection ID is required");
     if (!mongoose_1.default.Types.ObjectId.isValid(id))
         throw new BadRequest_1.BadRequest("Invalid rejection ID");
+    // مبدئيًا نجيب الريكورد عشان نتأكد من الـ taskId قبل الـ populate (للدبج)
+    const raw = await User_Rejection_1.UserRejectedReason.findById(id);
+    if (!raw)
+        throw new NotFound_1.NotFound("Rejection record not found");
+    // لو مفيش taskId أصلاً في الريكورد، نرجع خطأ واضح
+    if (!raw.taskId) {
+        throw new NotFound_1.NotFound("No task is linked to this rejection record");
+    }
+    // هنا الـ populate
     const rejection = await User_Rejection_1.UserRejectedReason.findById(id)
-        .populate("reasonId", "reason points")
+        .populate("reasonId", "reason points") // RejectedReson
         .populate({
         path: "taskId",
+        model: "Task", // اسم موديل التاسك
         select: "name priority status start_date end_date",
     })
         .populate("userId", "name email photo")
         .lean();
     if (!rejection)
         throw new NotFound_1.NotFound("Rejection record not found");
+    // تأكد إن اليوزر هو صاحب الريكورد
     if (rejection.userId._id.toString() !== userId?.toString()) {
-        throw new BadRequest_1.BadRequest("You are not allowed to view this rejection record");
+        throw new Errors_1.UnauthorizedError("You are not allowed to view this rejection record");
+    }
+    // لو رغم كل ده، الـ populate رجّع taskId = null
+    if (!rejection.taskId) {
+        throw new NotFound_1.NotFound("Task linked to this rejection record was not found");
     }
     (0, response_1.SuccessResponse)(res, {
         message: "Rejection record retrieved successfully",
-        userRejection: rejection
+        userRejection: rejection,
     });
 };
 exports.getUserRejectionById = getUserRejectionById;
