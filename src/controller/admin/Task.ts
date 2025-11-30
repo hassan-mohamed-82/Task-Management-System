@@ -1,17 +1,27 @@
-import { Request, Response } from 'express';
-import mongoose, { Types } from 'mongoose';
-import { TaskModel } from '../../models/schema/Tasks';
-import { ProjectModel } from '../../models/schema/project';
-import { UserProjectModel } from '../../models/schema/User_Project';
-import { BadRequest } from '../../Errors/BadRequest';
-import { NotFound } from '../../Errors/NotFound';
-import { UnauthorizedError } from '../../Errors/unauthorizedError';
-import { SuccessResponse } from '../../utils/response';
+import { Request, Response } from "express";
+import mongoose, { Types } from "mongoose";
 import path from "path";
+import {  NotFound, UnauthorizedError } from "../../Errors";
+import { SuccessResponse } from "../../utils/response";
+import { BadRequest } from "../../Errors/BadRequest";
+import { ProjectModel } from "../../models/schema/project";
+import { TaskModel } from "../../models/schema/Tasks";
+import { UserProjectModel } from "../../models/schema/User_Project";
 
-// --------------------------
-// CREATE TASK
-// ---------
+// دالة لتحويل مسار الملف لمسار عام يبدأ من uploads/...
+const toPublicPath = (p: string | null) => {
+  if (!p) return null;
+
+  // نخلي السلاشات كلها /
+  const normalized = p.replace(/\\/g, "/"); // مثال: "D:/Task shit/uploads/tasks/xx.pdf"
+
+  // ندور على uploads/
+  const idx = normalized.toLowerCase().indexOf("uploads/");
+  if (idx === -1) return null; // لو مفيش كلمة uploads في المسار
+
+  // نرجع من أول uploads/ لآخر السطر
+  return normalized.substring(idx); // مثال: "uploads/tasks/xx.pdf"
+};
 
 export const createTask = async (req: Request, res: Response) => {
   const user = req.user?._id;
@@ -22,9 +32,11 @@ export const createTask = async (req: Request, res: Response) => {
   if (!name) throw new BadRequest("Task name is required");
   if (!projectId) throw new BadRequest("Project ID is required");
 
+  // تأكد أن المشروع موجود
   const project = await ProjectModel.findById(projectId);
   if (!project) throw new NotFound("Project not found");
 
+  // تحقق صلاحية المستخدم في المشروع
   const checkuseratproject = await UserProjectModel.findOne({
     user_id: user,
     project_id: projectId
@@ -40,9 +52,10 @@ export const createTask = async (req: Request, res: Response) => {
 
   const endDateObj = end_date ? new Date(end_date) : undefined;
 
+  // التعامل مع الملفات (pdf أو صوت أو أي نوع) من multer
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-  const filePath = files?.file?.[0]?.path || null;      // مثال: "uploads/files/xxx.pdf"
-  const recordPath = files?.recorde?.[0]?.path || null; // مثال: "uploads/records/yyy.mp3"
+  const filePath = files?.file?.[0]?.path || null;      // مثال: D:\Task shit\uploads\tasks\xxx.pdf
+  const recordPath = files?.recorde?.[0]?.path || null; // مثال: D:\Task shit\uploads\records\yyy.mp3
 
   const task = new TaskModel({
     name,
@@ -51,23 +64,23 @@ export const createTask = async (req: Request, res: Response) => {
     priority,
     end_date: endDateObj,
     Depatment_id: Depatment_id ? new Types.ObjectId(Depatment_id) : undefined,
-    file: filePath,
+    file: filePath,        // نخزن المسار الأصلي اللي راجع من multer
     recorde: recordPath,
     createdBy: user,
   });
 
   await task.save();
 
-  // استخدم المسار كامل، مع تعديل الباك سلاش لو السيرفر ويندوز
-  const normalizePath = (p: string | null) =>
-    p ? p.replace(/\\/g, "/") : null;
+  // نحول المسار لمسار عام يمكن الوصول له من /uploads
+  const publicFilePath = toPublicPath(task.file);
+  const publicRecordPath = toPublicPath(task.recorde);
 
-  const fileUrl = task.file
-    ? `${req.protocol}://${req.get("host")}/${normalizePath(task.file)}`
+  const fileUrl = publicFilePath
+    ? `${req.protocol}://${req.get("host")}/${publicFilePath}`
     : null;
 
-  const recordUrl = task.recorde
-    ? `${req.protocol}://${req.get("host")}/${normalizePath(task.recorde)}`
+  const recordUrl = publicRecordPath
+    ? `${req.protocol}://${req.get("host")}/${publicRecordPath}`
     : null;
 
   SuccessResponse(res, {

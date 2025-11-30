@@ -21,8 +21,17 @@ app.use(cookieParser());
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
+// مهم جداً: هنا بنخدم الملفات من جذر المشروع/uploads
+console.log("__dirname =", __dirname);
+console.log(
+  "Serving uploads from:",
+  path.join(__dirname, "../uploads")
+);
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "../uploads"))
+);
 
 // Routes
 app.use("/api", ApiRoute);
