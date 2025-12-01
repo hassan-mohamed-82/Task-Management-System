@@ -5,14 +5,12 @@ import { authorizeRoles, checkProjectOrTaskRole } from "../../middlewares/author
 
 const route = Router();
 
-// ❌ غلط تعمل authorization هنا
 route.get("/", catchAsync(getallProject));
 
-// ✔️ صح — هنا فقط تحتاج role check لأن فيه project_id
 route.get(
   "/:project_id",
   authorizeRoles("admin", "user"),
-  checkProjectOrTaskRole(["teamlead", "Member", "Membercanapprove"]),
+  checkProjectOrTaskRole(["teamlead", "member", "membercanapprove"]),
   catchAsync(getProjectDetailsForUser)
 );
 

@@ -5,6 +5,7 @@ const taske_1 = require("../../controller/user/taske");
 const catchAsync_1 = require("../../utils/catchAsync");
 const route = (0, express_1.Router)();
 route.put("/:taskId", (0, catchAsync_1.catchAsync)(taske_1.updateUserTaskStatus));
-route.get("/:project_id", (0, catchAsync_1.catchAsync)(taske_1.getalltaskatprojectforuser));
+route.get("/:taskId", (0, catchAsync_1.catchAsync)(taske_1.getalltaskatprojectforuser));
 route.get("/task/:taskId", (0, catchAsync_1.catchAsync)(taske_1.getUserTaskByTaskId));
+route.put("/review/:taskId", (0, catchAsync_1.catchAsync)(taske_1.reviewUserTaskByApprover));
 exports.default = route;

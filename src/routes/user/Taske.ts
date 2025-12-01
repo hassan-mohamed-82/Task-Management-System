@@ -1,13 +1,15 @@
 import { Router } from "express";
-import {updateUserTaskStatus,getalltaskatprojectforuser,getUserTaskByTaskId} from "../../controller/user/taske"
+import {updateUserTaskStatus,getalltaskatprojectforuser,getUserTaskByTaskId,reviewUserTaskByApprover} from "../../controller/user/taske"
 import { catchAsync } from "../../utils/catchAsync";
 import { checkProjectOrTaskRole } from "../../middlewares/authorized";
 const route = Router();
 route.put("/:taskId", 
     catchAsync(updateUserTaskStatus));
-route.get("/:project_id" ,
+route.get("/:taskId" ,
     catchAsync(getalltaskatprojectforuser));
 route.get("/task/:taskId", 
     catchAsync(getUserTaskByTaskId));
+route.put("/review/:taskId", 
+    catchAsync(reviewUserTaskByApprover));
 
 export default route;
