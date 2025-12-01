@@ -89,14 +89,13 @@ const updateUserTaskStatus = async (req, res) => {
     const role = userTask.role; // member أو membercanapprove
     const currentStatus = userTask.status;
     // ================= تحقق من المهام المرتبطة (قبل ما نكمّل لمرحلة نهائية) =================
-    // الحالات اللي محتاجة نتأكد إن الـ related tasks كلها خلصت:
     const needAllRelatedFinished = 
-    // لو member عايز يحوّل التاسك التنفيذية (عادي أو edit) لـ done
+    // تحويل تنفيذ (عادي أو edit) لـ done
     ((role === "member" || role === "membercanapprove") &&
         (currentStatus === "in_progress" || currentStatus === "in_progress_edit") &&
         status === "done") ||
-        // لو membercanapprove عايز يوافق أو يرفض
-        ((role === "member" || role === "membercanapprove") &&
+        // لو عايز يوافق أو يرفض بعد ما بقت done
+        (role === "membercanapprove" &&
             currentStatus === "done" &&
             (status === "Approved from Member_can_approve" ||
                 status === "rejected from Member_can_rejected"));
@@ -112,7 +111,7 @@ const updateUserTaskStatus = async (req, res) => {
         }
     }
     // ================= Member FLOW (تنفيذ + تعديل) =================
-    if (role === "member" || role === "membercanapprove") {
+    if (role === "member") {
         // أول مرة
         if (currentStatus === "pending" && status === "in_progress") {
             userTask.status = "in_progress";
@@ -137,31 +136,45 @@ const updateUserTaskStatus = async (req, res) => {
             throw new BadRequest_1.BadRequest("Member cannot perform this status change");
         }
     }
-    // ============ Membercanapprove FLOW (مراجعة فقط) ============
+    // ============ Membercanapprove FLOW (تنفيذ + مراجعة) ============
     else if (role === "membercanapprove") {
-        // الموافقة على التاسك
-        if (currentStatus === "done" && status === "Approved from Member_can_approve") {
+        // نفس فلو التنفيذ
+        if (currentStatus === "pending" && status === "in_progress") {
+            userTask.status = "in_progress";
+            userTask.is_finished = false;
+        }
+        else if (currentStatus === "in_progress" && status === "done") {
+            userTask.status = "done";
+            userTask.is_finished = true;
+        }
+        else if (currentStatus === "pending_edit" && status === "in_progress_edit") {
+            userTask.status = "in_progress_edit";
+            userTask.is_finished = false;
+        }
+        else if (currentStatus === "in_progress_edit" && status === "done") {
+            userTask.status = "done";
+            userTask.is_finished = true;
+        }
+        // الموافقة على التاسك بعد ما تبقى done
+        else if (currentStatus === "done" && status === "Approved from Member_can_approve") {
             userTask.status = "Approved from Member_can_approve";
             userTask.is_finished = true;
         }
-        // الرفض مع سبب
+        // الرفض مع سبب بعد ما تبقى done
         else if (currentStatus === "done" &&
             status === "rejected from Member_can_rejected") {
             if (!rejection_reasonId) {
                 throw new BadRequest_1.BadRequest("Rejection reason is required");
             }
-            // نجيب سبب الرفض عشان نستخدم الـ points
             const rejectionReason = await RejectdReson_1.RejectedReson.findById(rejection_reasonId);
             if (!rejectionReason) {
                 throw new NotFound_1.NotFound("Rejection reason not found");
             }
-            // سجل سبب الرفض في UserRejectedReason
             await User_Rejection_1.UserRejectedReason.create({
-                userId: userTask.user_id, // اليوزر اللي عليه التاسك
+                userId: userTask.user_id,
                 reasonId: rejection_reasonId,
-                taskId: userTask.task_id, // التاسك الكبيرة
+                taskId: userTask.task_id,
             });
-            // إضافة نقاط الرفض للـ user
             const pointsUser = await User_1.User.findById(userTask.user_id);
             if (pointsUser) {
                 pointsUser.totalRejectedPoints =
@@ -169,19 +182,18 @@ const updateUserTaskStatus = async (req, res) => {
                         (rejectionReason.points || 0);
                 await pointsUser.save();
             }
-            // تحويل جميع المرتبطين إلى pending_edit + is_finished = false
             if (userTask.User_taskId && userTask.User_taskId.length > 0) {
                 await User_Task_1.UserTaskModel.updateMany({ _id: { $in: userTask.User_taskId } }, { status: "pending_edit", is_finished: false });
             }
             userTask.status = "rejected from Member_can_rejected";
-            userTask.is_finished = false; // لسه محتاج تعديل
+            userTask.is_finished = false;
             userTask.rejection_reasonId = rejection_reasonId;
         }
         else {
             throw new BadRequest_1.BadRequest("Membercanapprove cannot perform this status change");
         }
     }
-    // لو role مش member ولا membercanapprove (مفروض ما يحصلش)
+    // لو role مش member ولا membercanapprove
     else {
         throw new BadRequest_1.BadRequest("Invalid user role for this task");
     }
