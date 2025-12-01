@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reviewUserTaskByApprover = exports.getUserTaskByTaskId = exports.updateUserTaskStatus = exports.getalltaskatprojectforuser = void 0;
+exports.selection = exports.reviewUserTaskByApprover = exports.getUserTaskByTaskId = exports.updateUserTaskStatus = exports.getalltaskatprojectforuser = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
@@ -410,3 +410,11 @@ const reviewUserTaskByApprover = async (req, res) => {
     });
 };
 exports.reviewUserTaskByApprover = reviewUserTaskByApprover;
+const selection = async (req, res) => {
+    const rejected_reason = await RejectdReson_1.RejectedReson.find();
+    (0, response_1.SuccessResponse)(res, {
+        message: "Rejection reasons fetched successfully",
+        rejected_reason,
+    });
+};
+exports.selection = selection;

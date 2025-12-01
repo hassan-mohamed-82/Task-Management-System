@@ -8,4 +8,5 @@ route.put("/:taskId", (0, catchAsync_1.catchAsync)(taske_1.updateUserTaskStatus)
 route.get("/:taskId", (0, catchAsync_1.catchAsync)(taske_1.getalltaskatprojectforuser));
 route.get("/task/:taskId", (0, catchAsync_1.catchAsync)(taske_1.getUserTaskByTaskId));
 route.put("/review/:taskId", (0, catchAsync_1.catchAsync)(taske_1.reviewUserTaskByApprover));
+route.get("/selection", (0, catchAsync_1.catchAsync)(taske_1.selection));
 exports.default = route;

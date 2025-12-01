@@ -511,3 +511,17 @@ if (approverRole !== "membercanapprove") {
     task: userTask,
   });
 };
+
+
+
+export const selection = async (req: Request, res: Response) => {
+
+  const rejected_reason = await RejectedReson.find();
+
+  SuccessResponse(res, {
+    message: "Rejection reasons fetched successfully",
+    rejected_reason,
+  });
+
+
+}
