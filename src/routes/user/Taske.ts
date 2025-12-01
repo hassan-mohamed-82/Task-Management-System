@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {updateUserTaskStatus,getalltaskatprojectforuser,getusertaskattaskbyid} from "../../controller/user/taske"
+import {updateUserTaskStatus,getalltaskatprojectforuser,getUserTaskByTaskId} from "../../controller/user/taske"
 import { catchAsync } from "../../utils/catchAsync";
 import { checkProjectOrTaskRole } from "../../middlewares/authorized";
 const route = Router();
@@ -8,6 +8,6 @@ route.put("/:taskId",
 route.get("/:project_id" ,
     catchAsync(getalltaskatprojectforuser));
 route.get("/task/:taskId", 
-    catchAsync(getusertaskattaskbyid));
+    catchAsync(getUserTaskByTaskId));
 
 export default route;
