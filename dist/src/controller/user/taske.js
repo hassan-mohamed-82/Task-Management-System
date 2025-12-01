@@ -92,11 +92,11 @@ const updateUserTaskStatus = async (req, res) => {
     // الحالات اللي محتاجة نتأكد إن الـ related tasks كلها خلصت:
     const needAllRelatedFinished = 
     // لو member عايز يحوّل التاسك التنفيذية (عادي أو edit) لـ done
-    (role === "member" &&
+    ((role === "member" || role === "membercanapprove") &&
         (currentStatus === "in_progress" || currentStatus === "in_progress_edit") &&
         status === "done") ||
         // لو membercanapprove عايز يوافق أو يرفض
-        (role === "membercanapprove" &&
+        ((role === "member" || role === "membercanapprove") &&
             currentStatus === "done" &&
             (status === "Approved from Member_can_approve" ||
                 status === "rejected from Member_can_rejected"));
@@ -112,7 +112,7 @@ const updateUserTaskStatus = async (req, res) => {
         }
     }
     // ================= Member FLOW (تنفيذ + تعديل) =================
-    if (role === "member") {
+    if (role === "member" || role === "membercanapprove") {
         // أول مرة
         if (currentStatus === "pending" && status === "in_progress") {
             userTask.status = "in_progress";

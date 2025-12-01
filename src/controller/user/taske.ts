@@ -96,13 +96,13 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   const needAllRelatedFinished =
     // لو member عايز يحوّل التاسك التنفيذية (عادي أو edit) لـ done
     (
-      role === "member" &&
+      (role === "member" || role === "membercanapprove") &&
       (currentStatus === "in_progress" || currentStatus === "in_progress_edit") &&
       status === "done"
     ) ||
     // لو membercanapprove عايز يوافق أو يرفض
     (
-      role === "membercanapprove" &&
+      (role === "member" || role === "membercanapprove") &&
       currentStatus === "done" &&
       (status === "Approved from Member_can_approve" ||
         status === "rejected from Member_can_rejected")
@@ -125,7 +125,7 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   }
 
   // ================= Member FLOW (تنفيذ + تعديل) =================
-  if (role === "member") {
+  if (role === "member"|| role === "membercanapprove") {
     // أول مرة
     if (currentStatus === "pending" && status === "in_progress") {
       userTask.status = "in_progress";
