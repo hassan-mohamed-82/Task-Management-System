@@ -291,7 +291,6 @@ export const approveOrRejectTask = async (req: Request, res: Response) => {
 
     const rejectionReason = await RejectedReson.findOne({
       _id: rejection_reasonId,
-      createdBy: adminId,
     });
 
     if (!rejectionReason) {

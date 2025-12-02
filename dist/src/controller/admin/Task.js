@@ -283,7 +283,6 @@ const approveOrRejectTask = async (req, res) => {
         }
         const rejectionReason = await RejectdReson_1.RejectedReson.findOne({
             _id: rejection_reasonId,
-            createdBy: adminId,
         });
         if (!rejectionReason) {
             throw new Errors_1.NotFound("Rejection reason not found in your workspace");
