@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {createTask,getAllTasks,getTaskById,updateTask,deleteTask} from "../../controller/admin/Task"
+import {createTask,getAllTasks,getTaskById,updateTask,deleteTask,approveOrRejectTask} from "../../controller/admin/Task"
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
 import { createTaskSchema, updateTaskSchema } from "../../validation/admin/Task";
@@ -23,10 +23,15 @@ uploadTaskFiles,
   validate(createTaskSchema),        
   catchAsync(createTask)
 );
+route.post("/:id",authorizeRoles("admin", "user"),
+checkProjectOrTaskRole(["teamlead", "admin"]),
+ catchAsync(approveOrRejectTask));
+
 route.put("/:id",authorizeRoles("admin", "user"),
 checkProjectOrTaskRole(["teamlead", "admin"]),
  validate(updateTaskSchema), catchAsync(updateTask));
 route.delete("/:id", authorizeRoles("admin", "user"),
 checkProjectOrTaskRole(["teamlead", "admin"]),
 catchAsync(deleteTask));
+
 export default route;

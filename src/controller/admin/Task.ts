@@ -8,6 +8,9 @@ import { ProjectModel } from "../../models/schema/project";
 import { TaskModel } from "../../models/schema/Tasks";
 import { UserProjectModel } from "../../models/schema/User_Project";
 import { UserTaskModel } from "../../models/schema/User_Task";
+import { UserRejectedReason } from "../../models/schema/User_Rejection";
+import { RejectedReson } from "../../models/schema/RejectdReson";
+import { User } from "../../models/schema/auth/User";
 
 // دالة لتحويل مسار الملف لمسار عام يبدأ من uploads/...
 const toPublicPath = (p: string | null | undefined) => {
@@ -243,4 +246,111 @@ export const deleteTask = async (req: Request, res: Response) => {
   await UserTaskModel.deleteMany({ task_id: id });
 
   SuccessResponse(res, { message: "Task deleted successfully" });
+};
+
+
+export const approveOrRejectTask = async (req: Request, res: Response) => {
+  const adminId = req.user?._id;
+  const currentRole = String(req.user?.role || "").toLowerCase();
+
+  if (!["admin", "teamlead"].includes(currentRole)) {
+    throw new UnauthorizedError("Only Admin or TeamLead can update task status");
+  }
+
+  const { id } = req.params; // ده Task ID مباشرة ✅
+  const { status, rejection_reasonId } = req.body;
+
+  if (!id) throw new BadRequest("Task ID is required");
+  if (!status) throw new BadRequest("Status is required");
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new BadRequest("Invalid Task ID");
+  }
+
+  const task = await TaskModel.findOne({
+    _id: id,
+    createdBy: adminId,
+  });
+
+  if (!task) throw new NotFound("Task not found or you don't have access");
+
+  // التأكد إن الـ Task جاهزة للـ Admin Review
+  if (task.status !== "waiting_for_approve") {
+    throw new BadRequest(
+      `Cannot review task. Task must be 'waiting_for_approve', current: '${task.status}'`
+    );
+  }
+
+  // ======================
+  // ❌ REJECT
+  // ======================
+  if (status === "rejected") {
+    if (!rejection_reasonId) {
+      throw new BadRequest("Rejection reason is required");
+    }
+
+    const rejectionReason = await RejectedReson.findOne({
+      _id: rejection_reasonId,
+      createdBy: adminId,
+    });
+
+    if (!rejectionReason) {
+      throw new NotFound("Rejection reason not found in your workspace");
+    }
+
+    // نجيب كل الـ UserTasks المرتبطة بالـ Task
+    const allUserTasks = await UserTaskModel.find({ task_id: task._id });
+
+    // نعمل loop على كل UserTask ونزود النقاط لكل User
+    for (const ut of allUserTasks) {
+      // سجل سبب الرفض
+      await UserRejectedReason.create({
+        userId: ut.user_id,
+        reasonId: rejection_reasonId,
+        taskId: task._id,
+      });
+
+      // زود نقاط الرفض
+      const pointsUser = await User.findById(ut.user_id);
+      if (pointsUser) {
+        pointsUser.totalRejectedPoints =
+          (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
+        await pointsUser.save();
+      }
+    }
+
+    // كل الـ UserTasks → pending_edit
+    await UserTaskModel.updateMany(
+      { task_id: task._id },
+      { status: "pending_edit", is_finished: false }
+    );
+
+    // Task → Pending
+    task.status = "Pending";
+    await task.save();
+  }
+
+  // ======================
+  // ✅ APPROVE
+  // ======================
+  else if (status === "Approved") {
+    // كل الـ UserTasks تبقى finished
+    await UserTaskModel.updateMany(
+      { task_id: task._id },
+      { is_finished: true }
+    );
+
+    // Task → Approved
+    task.status = "Approved";
+    await task.save();
+  }
+
+  else {
+    throw new BadRequest("Status must be either 'Approved' or 'rejected'");
+  }
+
+  SuccessResponse(res, {
+    message: "Task status updated successfully",
+    data: { task },
+  });
 };

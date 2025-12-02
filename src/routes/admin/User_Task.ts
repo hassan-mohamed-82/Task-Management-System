@@ -1,11 +1,10 @@
 import { Router } from "express";
-import {addUserToTask,updateUserTaskStatus,updaterole,removedUserFromTask,getAllUserTask} from "../../controller/admin/User_Task";
+import {addUserToTask,updaterole,removedUserFromTask,getAllUserTask} from "../../controller/admin/User_Task";
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
 import { createUserTaskSchema } from "../../validation/admin/User_Task";
 const route = Router();
 route.post("/",validate(createUserTaskSchema) ,catchAsync(addUserToTask));
-route.put("/:id" ,catchAsync(updateUserTaskStatus));
 route.put("/role/:id" ,catchAsync(updaterole));
 route.delete("/:user_id/:task_id", catchAsync(removedUserFromTask));
 route.get("/:id", catchAsync(getAllUserTask));
