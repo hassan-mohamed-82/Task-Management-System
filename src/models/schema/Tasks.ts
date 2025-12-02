@@ -3,7 +3,7 @@ import mongoose, { Schema, model, Document, Types } from 'mongoose';
 import { IUser } from './auth/User';
 import { IProject } from './project';
 
-export type TaskStatus = 'Pending' | 'in_progress' | 'done' | 'Approved' | 'rejected' | 'Pending_edit' | 'in_progress_edit';
+export type TaskStatus = 'Pending' | 'in_progress' | 'Approved' | 'rejected' | 'waiting_for_approve';
 
 export interface ITask extends Document {
   name: string;
@@ -36,7 +36,7 @@ const taskSchema = new Schema<ITask>(
     },
     status: {
       type: String,
-      enum: ["Pending",'Approved', 'rejected'],
+      enum: ["Pending",'in_progress','waiting_for_approve','Approved', 'rejected'],
       default: 'Pending',
     },
     recorde: { type: String, default: '' },

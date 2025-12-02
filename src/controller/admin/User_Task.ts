@@ -76,13 +76,12 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   const adminId = req.user?._id;
   const currentRole = String(req.user?.role || "").toLowerCase();
 
-  // بس Admin أو TeamLead
   if (!["admin", "teamlead"].includes(currentRole)) {
     throw new UnauthorizedError("Only Admin or TeamLead can update task status");
   }
 
-  const { id } = req.params; // UserTask ID
-  const { status, rejection_reasonId } = req.body; // status لازم يكون "Approved" أو "rejected"
+  const { id } = req.params;
+  const { status, rejection_reasonId } = req.body;
 
   if (!id) throw new BadRequest("UserTask ID is required");
   if (!status) throw new BadRequest("Status is required");
@@ -90,29 +89,21 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
   const userTask = await UserTaskModel.findById(id);
   if (!userTask) throw new NotFound("UserTask not found");
 
-  // نتأكد إن التاسك الكبيرة بتاعة نفس الـ admin
   const task = await TaskModel.findOne({
     _id: userTask.task_id,
     createdBy: adminId,
   });
   if (!task) throw new NotFound("You do not have access to this task");
 
-  // الحالات اللي مسموح للـ Admin/TeamLead يغيّر منها حالة التاسك الكبيرة
-  const allowedCurrentStatuses: IUserTask["status"][] = [
-    "done",
-    "Approved from Member_can_approve",
-  ];
-
-  if (!userTask.status || !allowedCurrentStatuses.includes(userTask.status)) {
+  // التأكد إن الـ Task جاهزة للـ Admin Review
+  if (task.status !== "waiting_for_approve") {
     throw new BadRequest(
-      `Cannot change status. Current userTask status must be ${allowedCurrentStatuses.join(
-        " or "
-      )}`
+      `Cannot review task. Task must be 'waiting_for_approve', current: '${task.status}'`
     );
   }
 
   // ======================
-  // حالة رفض التاسك الكبيرة
+  // REJECT
   // ======================
   if (status === "rejected") {
     if (!rejection_reasonId) {
@@ -128,64 +119,58 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
       throw new NotFound("Rejection reason not found in your workspace");
     }
 
-    // نسجّل سبب الرفض مربوط بالتاسك الكبيرة (Task)
-    await UserRejectedReason.create({
-      userId: userTask.user_id,   // اليوزر اللي ماسك التاسك
-      reasonId: rejection_reasonId,
-      taskId: userTask.task_id,   // ⬅️ هنا Task مش User_Task
-    });
+    // نجيب كل الـ UserTasks المرتبطة بالـ Task
+    const allUserTasks = await UserTaskModel.find({ task_id: task._id });
 
-    // لو فيه Sub UserTasks نخليها pending_edit
-    if (userTask.User_taskId?.length > 0) {
-      await UserTaskModel.updateMany(
-        { _id: { $in: userTask.User_taskId } },
-        { status: "pending_edit" }
-      );
+    // نعمل loop على كل UserTask
+    for (const ut of allUserTasks) {
+      // نسجل سبب الرفض لكل يوزر
+      await UserRejectedReason.create({
+        userId: ut.user_id,
+        reasonId: rejection_reasonId,
+        taskId: task._id,
+      });
+
+      // نزود نقاط الرفض لكل يوزر
+      const pointsUser = await User.findById(ut.user_id);
+      if (pointsUser) {
+        pointsUser.totalRejectedPoints =
+          (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
+        await pointsUser.save();
+      }
     }
 
-    // نحدّث UserTask نفسها
-    userTask.status = "rejected from Member_can_rejected";
-    userTask.is_finished = false;
+    // نرجع كل الـ UserTasks لـ pending_edit
+    await UserTaskModel.updateMany(
+      { task_id: task._id },
+      { status: "pending_edit", is_finished: false }
+    );
 
-    // نحسب نقاط الرفض على اليوزر
-    const pointsUser = await User.findById(userTask.user_id);
-    if (pointsUser) {
-      pointsUser.totalRejectedPoints =
-        (pointsUser.totalRejectedPoints || 0) +
-        (rejectionReason.points || 0);
-      await pointsUser.save();
-    }
-
-    // نحدّث حالة التاسك الكبيرة
-    task.status = "rejected";
+    // الـ Task الكبيرة ترجع Pending
+    task.status = "Pending";
     await task.save();
   }
 
   // ======================
-  // حالة الـ Approved للتاسك الكبيرة
+  // APPROVE
   // ======================
   else if (status === "Approved") {
-    // التاسك الكبيرة تتحوّل Approved
+    await UserTaskModel.updateMany(
+      { task_id: task._id },
+      { is_finished: true }
+    );
+
     task.status = "Approved";
     await task.save();
-
-    // نعتبر إن الـ UserTask خلصت
-    userTask.is_finished = true;
-    // نسيب status بتاع UserTask زي ما هو (done أو Approved from Member_can_approve)
-    // أو لو حابب توحّده تقدر تعمل مثلاً:
-    // userTask.status = "Approved from Member_can_approve";
   }
 
-  // أي status غير Approved / rejected نرفضه
   else {
     throw new BadRequest("Status must be either 'Approved' or 'rejected'");
   }
 
-  await userTask.save();
-
   SuccessResponse(res, {
-    message: "UserTask / Task status updated successfully",
-    data: { userTask, task },
+    message: "Task status updated successfully",
+    data: { task },
   });
 };
 
