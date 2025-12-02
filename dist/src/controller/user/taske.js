@@ -189,16 +189,21 @@ const updateUserTaskStatus = async (req, res) => {
     // ⬇️⬇️⬇️ ============ تحديث حالة الـ Task الكبيرة تلقائياً ============ ⬇️⬇️⬇️
     const task = await Tasks_1.TaskModel.findById(userTask.task_id);
     if (task) {
-        // CASE 1: أي UserTask تتحول لـ in_progress → Task تبقى in_progress
-        if (task.status === "Pending" && userTask.status === "in_progress") {
+        // ✅ CASE 1: أول مرة - pending → in_progress
+        // أو بعد الرفض - pending_edit → in_progress_edit
+        // الـ Task تتحول من Pending → in_progress
+        if (task.status === "Pending" &&
+            (userTask.status === "in_progress" || userTask.status === "in_progress_edit")) {
             task.status = "in_progress";
             await task.save();
         }
-        // CASE 2: كل الـ membercanapprove عملوا approve → Task تبقى waiting_for_approve
+        // ✅ CASE 2: كل الـ membercanapprove عملوا approve
+        // الـ Task تتحول من in_progress → waiting_for_approve
         else if (task.status === "in_progress") {
             const allUserTasks = await User_Task_1.UserTaskModel.find({ task_id: userTask.task_id });
             const approverTasks = allUserTasks.filter((ut) => ut.role === "membercanapprove");
             if (approverTasks.length > 0) {
+                // فيه approvers - لازم كلهم يوافقوا
                 const allApproved = approverTasks.every((ut) => ut.status === "Approved from Member_can_approve");
                 if (allApproved) {
                     task.status = "waiting_for_approve";
@@ -206,7 +211,7 @@ const updateUserTaskStatus = async (req, res) => {
                 }
             }
             else {
-                // مفيش approvers، نشوف لو كل الناس خلصوا
+                // مفيش approvers - لازم كل الناس يخلصوا (done)
                 const allDone = allUserTasks.every((ut) => ut.status === "done" || ut.is_finished === true);
                 if (allDone) {
                     task.status = "waiting_for_approve";
@@ -418,26 +423,38 @@ const reviewUserTaskByApprover = async (req, res) => {
         if (!rejectionReason) {
             throw new NotFound_1.NotFound("Rejection reason not found");
         }
-        await User_Rejection_1.UserRejectedReason.create({
-            userId: userTask.user_id,
-            reasonId: rejection_reasonId,
-            taskId: userTask.task_id,
+        // ⬇️⬇️⬇️ نجيب كل الـ UserTasks ونزود النقاط لكل واحد ⬇️⬇️⬇️
+        const allUserTasks = await User_Task_1.UserTaskModel.find({ task_id: userTask.task_id });
+        for (const ut of allUserTasks) {
+            // سجل سبب الرفض لكل يوزر
+            await User_Rejection_1.UserRejectedReason.create({
+                userId: ut.user_id,
+                reasonId: rejection_reasonId,
+                taskId: userTask.task_id,
+            });
+            // زود نقاط الرفض لكل يوزر
+            const pointsUser = await User_1.User.findById(ut.user_id);
+            if (pointsUser) {
+                pointsUser.totalRejectedPoints =
+                    (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
+                await pointsUser.save();
+            }
+        }
+        // كل الـ UserTasks → pending_edit
+        await User_Task_1.UserTaskModel.updateMany({ task_id: userTask.task_id }, { status: "pending_edit", is_finished: false });
+        // ⬇️⬇️⬇️ الـ Task الكبيرة ترجع Pending ⬇️⬇️⬇️
+        const task = await Tasks_1.TaskModel.findById(userTask.task_id);
+        if (task) {
+            task.status = "Pending";
+            await task.save();
+        }
+        return (0, response_1.SuccessResponse)(res, {
+            message: "Task rejected and sent back for editing",
+            task: userTask,
         });
-        const pointsUser = await User_1.User.findById(userTask.user_id);
-        if (pointsUser) {
-            pointsUser.totalRejectedPoints =
-                (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
-            await pointsUser.save();
-        }
-        if (userTask.User_taskId && userTask.User_taskId.length > 0) {
-            await User_Task_1.UserTaskModel.updateMany({ _id: { $in: userTask.User_taskId } }, { status: "pending_edit", is_finished: false });
-        }
-        userTask.status = "rejected from Member_can_rejected";
-        userTask.is_finished = false;
-        userTask.rejection_reasonId = rejection_reasonId;
     }
     await userTask.save();
-    // ============ تحديث حالة الـ Task الكبيرة تلقائياً ============
+    // ============ تحديث حالة الـ Task الكبيرة تلقائياً (للـ Approve) ============
     const task = await Tasks_1.TaskModel.findById(userTask.task_id);
     if (task && task.status === "in_progress") {
         const allUserTasks = await User_Task_1.UserTaskModel.find({ task_id: userTask.task_id });
