@@ -23,7 +23,7 @@ uploadTaskFiles,
   validate(createTaskSchema),        
   catchAsync(createTask)
 );
-route.post("/:id",authorizeRoles("admin", "user"),
+route.post("/approve_reject/:id",authorizeRoles("admin", "user"),
 checkProjectOrTaskRole(["teamlead", "admin"]),
  catchAsync(approveOrRejectTask));
 
