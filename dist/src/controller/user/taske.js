@@ -60,7 +60,7 @@ const getalltaskatprojectforuser = async (req, res) => {
     if (!allowedRoles.includes(projectRole)) {
         throw new unauthorizedError_1.UnauthorizedError("You are not allowed to access this project tasks");
     }
-    const tasks = await User_Task_1.UserTaskModel.find({ task_id: taskId, user_id: userId })
+    const tasks = await User_Task_1.UserTaskModel.find({ task_id: taskId, user_id: userId, is_active: true })
         .populate('user_id', 'name email')
         .populate('task_id', 'name description status priority start_date end_date is_finished ');
     (0, response_1.SuccessResponse)(res, { message: "Tasks found successfully", data: tasks });

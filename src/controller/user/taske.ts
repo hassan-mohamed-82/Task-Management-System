@@ -58,7 +58,7 @@ export const getalltaskatprojectforuser = async (req: Request, res: Response) =>
         throw new UnauthorizedError("You are not allowed to access this project tasks");
     }
 
-    const tasks = await UserTaskModel.find({ task_id: taskId ,user_id:userId})
+    const tasks = await UserTaskModel.find({ task_id: taskId ,user_id:userId,is_active:true})
     .populate('user_id' , 'name email')
     .populate('task_id' , 'name description status priority start_date end_date is_finished ');
     SuccessResponse(res, { message: "Tasks found successfully", data: tasks });
