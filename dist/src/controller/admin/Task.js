@@ -45,7 +45,6 @@ const User_Task_1 = require("../../models/schema/User_Task");
 const User_Rejection_1 = require("../../models/schema/User_Rejection");
 const RejectdReson_1 = require("../../models/schema/RejectdReson");
 const User_1 = require("../../models/schema/auth/User");
-// دالة لتحويل مسار الملف لمسار عام يبدأ من uploads/...
 const toPublicPath = (p) => {
     if (!p)
         return null;

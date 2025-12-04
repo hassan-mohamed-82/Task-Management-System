@@ -12,7 +12,6 @@ import { UserRejectedReason } from "../../models/schema/User_Rejection";
 import { RejectedReson } from "../../models/schema/RejectdReson";
 import { User } from "../../models/schema/auth/User";
 
-// دالة لتحويل مسار الملف لمسار عام يبدأ من uploads/...
 const toPublicPath = (p: string | null | undefined) => {
   if (!p) return null;
 
@@ -244,7 +243,7 @@ export const deleteTask = async (req: Request, res: Response) => {
 
   await TaskModel.findByIdAndDelete(id);
   await UserTaskModel.deleteMany({ task_id: id });
-
+  
   SuccessResponse(res, { message: "Task deleted successfully" });
 };
 

@@ -54,9 +54,46 @@ Smart College Team`
 export const signup = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
 
-  const existing = await User.findOne({ email });
-  if (existing) throw new UniqueConstrainError("Email", "User already signed up with this email");
+  // ===========================
+  // 1) Check if user already exists
+  // ===========================
+  const existingUser = await User.findOne({ email });
 
+  // ----------------------------
+  // CASE A) User exists but NOT verified → resend code
+  // ----------------------------
+  if (existingUser && !existingUser.isVerified) {
+    await sendVerificationCode(
+      new mongoose.Types.ObjectId(existingUser._id),
+      existingUser.email,
+      existingUser.name,
+      "Verify Your Email",
+      "We received a request to verify your Task_management_system account."
+    );
+
+    return SuccessResponse(
+      res,
+      {
+        message: "This email is already registered but not verified. A new verification code has been sent.",
+        userId: existingUser._id,
+      },
+      200
+    );
+  }
+
+  // ----------------------------
+  // CASE B) User exists and verified → throw error
+  // ----------------------------
+  if (existingUser && existingUser.isVerified) {
+    throw new UniqueConstrainError(
+      "Email",
+      "User already signed up with this email"
+    );
+  }
+
+  // ===========================
+  // 2) Create new user (first time signup)
+  // ===========================
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newUser = await User.create({
@@ -66,15 +103,28 @@ export const signup = async (req: Request, res: Response) => {
     isVerified: false,
   });
 
-await sendVerificationCode(
-  new mongoose.Types.ObjectId(newUser._id),
-  newUser.email,
-  newUser.name,
-  "Verify Your Email",
-  "We received a request to verify your Smart College account."
-);
+  // ===========================
+  // 3) Send verification code
+  // ===========================
+  await sendVerificationCode(
+    new mongoose.Types.ObjectId(newUser._id),
+    newUser.email,
+    newUser.name,
+    "Verify Your Email",
+    "We received a request to verify yourTask_management_system account."
+  );
 
-  return SuccessResponse(res, { message: "Signup successful, check your email for code", userId: newUser._id }, 201);
+  // ===========================
+  // 4) Success Response
+  // ===========================
+  return SuccessResponse(
+    res,
+    {
+      message: "Signup successful, check your email for code",
+      userId: newUser._id,
+    },
+    201
+  );
 };
 
 // ------------------------------------

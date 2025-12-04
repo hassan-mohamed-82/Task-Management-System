@@ -568,7 +568,7 @@ export const reviewUserTaskByApprover = async (req: Request, res: Response) => {
       if (allApproved) {
         task.status = "waiting_for_approve";
         await task.save();
-      }
+      } 
     }
   }
 
