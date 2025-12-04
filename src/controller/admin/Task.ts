@@ -42,51 +42,71 @@ export const createTask = async (req: Request, res: Response) => {
   const user = req.user?._id;
   if (!user) throw new UnauthorizedError("Access denied.");
 
-  const { name, description, projectId, priority, end_date, Depatment_id } = req.body;
+  const { name, description, projectId, priority, start_date, end_date, Depatment_id } = req.body;
 
   if (!name) throw new BadRequest("Task name is required");
   if (!projectId) throw new BadRequest("Project ID is required");
 
-  // تأكد أن المشروع موجود
   const project = await ProjectModel.findById(projectId);
   if (!project) throw new NotFound("Project not found");
 
-  // تحقق صلاحية المستخدم في المشروع
   const checkuseratproject = await UserProjectModel.findOne({
     user_id: user,
-    project_id: projectId
+    project_id: projectId,
   });
 
   const role = req.user?.role?.toLowerCase();
   if (role !== "admin") {
-    const userProjectRole = checkuseratproject?.role?.toLowerCase() ?? '';
+    const userProjectRole = checkuseratproject?.role?.toLowerCase() ?? "";
     if (!checkuseratproject || ["member", "membercanapprove"].includes(userProjectRole)) {
       throw new UnauthorizedError("You can't create a task for this project");
     }
   }
 
-  const endDateObj = end_date ? new Date(end_date) : undefined;
+  // ✅ تحويل التواريخ
+  const startDateObj = start_date ? new Date(start_date) : null;
+  const endDateObj = end_date ? new Date(end_date) : null;
 
-  // التعامل مع الملفات (pdf أو صوت أو أي نوع) من multer
+  // ✅ تحديد هل يتفعل الآن أو ينتظر
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let shouldBeActive = false;
+  let initialStatus = null;
+
+  if (startDateObj) {
+    const startDay = new Date(startDateObj);
+    startDay.setHours(0, 0, 0, 0);
+
+    if (startDay <= today) {
+      // التاريخ اليوم أو في الماضي → يتفعل فوراً
+      shouldBeActive = true;
+      initialStatus = "Pending";
+    }
+    // لو في المستقبل → يفضل inactive وينتظر الـ Cron
+  }
+
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-  const filePath = files?.file?.[0]?.path || null;      // لوكال: D:\Task... | سيرفر: /var/www/.../dist/uploads/tasks/...
-  const recordPath = files?.recorde?.[0]?.path || null; // نفس الفكرة للتسجيل
+  const filePath = files?.file?.[0]?.path || null;
+  const recordPath = files?.recorde?.[0]?.path || null;
 
   const task = new TaskModel({
     name,
     description,
     projectId: new Types.ObjectId(projectId),
     priority,
+    start_date: startDateObj,
     end_date: endDateObj,
     Depatment_id: Depatment_id ? new Types.ObjectId(Depatment_id) : undefined,
-    file: filePath,        // نخزن المسار الأصلي اللي راجع من multer
+    file: filePath,
     recorde: recordPath,
     createdBy: user,
+    is_active: shouldBeActive,
+    status: initialStatus,
   });
 
   await task.save();
 
-  // نحول المسار لمسار عام يمكن الوصول له من /uploads
   const publicFilePath = toPublicPath(task.file);
   const publicRecordPath = toPublicPath(task.recorde);
 
@@ -100,9 +120,10 @@ export const createTask = async (req: Request, res: Response) => {
 
   SuccessResponse(res, {
     message: "Task created successfully",
-    task: { ...task.toObject(), file: fileUrl, recorde: recordUrl }
+    task: { ...task.toObject(), file: fileUrl, recorde: recordUrl },
   });
 };
+
 
 
 // --------------------------
@@ -134,8 +155,22 @@ export const getAllTasks = async (req: Request, res: Response) => {
     recorde: buildUrl(t.recorde, req),
   }));
 
-  SuccessResponse(res, { message: "Tasks fetched successfully", tasks });
+  // ✅ تقسيم الـ Tasks
+  const activeTasks = tasks.filter((t: any) => t.is_active === true);
+  const inactiveTasks = tasks.filter((t: any) => t.is_active === false);
+
+  SuccessResponse(res, {
+    message: "Tasks fetched successfully",
+    activeTasks,
+    inactiveTasks,
+    summary: {
+      total: tasks.length,
+      active: activeTasks.length,
+      inactive: inactiveTasks.length,
+    },
+  });
 };
+
 // --------------------------
 // GET TASK BY ID
 // --------------------------
@@ -350,5 +385,68 @@ export const approveOrRejectTask = async (req: Request, res: Response) => {
   SuccessResponse(res, {
     message: "Task status updated successfully",
     data: { task },
+  });
+};
+
+export const toggleTaskStatus = async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  if (!userId) throw new UnauthorizedError("Access denied.");
+
+  const { id } = req.params;
+  const { is_active } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid Task ID");
+  if (typeof is_active !== "boolean") throw new BadRequest("is_active must be a boolean");
+
+  const task = await TaskModel.findById(id);
+  if (!task) throw new NotFound("Task not found");
+
+  const userProject = await UserProjectModel.findOne({
+    user_id: userId,
+    project_id: task.projectId,
+  });
+
+  if (!userProject)
+    throw new UnauthorizedError("You are not assigned to this project");
+
+  const role = (userProject.role || "").toLowerCase();
+
+  if (!["admin", "teamlead"].includes(role))
+    throw new UnauthorizedError("You don't have permission to update this task");
+
+  if (task.is_active === is_active) {
+    throw new BadRequest(`Task is already ${is_active ? "active" : "inactive"}`);
+  }
+
+  if (is_active) {
+    // ✅ تفعيل يدوي
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    task.is_active = true;
+    task.status = "Pending";
+
+    // لو مفيش start_date، نحط تاريخ اليوم
+    if (!task.start_date) {
+      task.start_date = today;
+    }
+  } else {
+    // ✅ تعطيل
+    task.is_active = false;
+    task.status = "null";
+    // start_date يفضل زي ما هو (مش بنمسحه)
+  }
+
+  await task.save();
+
+  const taskObj = task.toObject();
+
+  SuccessResponse(res, {
+    message: `Task ${is_active ? "activated" : "deactivated"} successfully`,
+    task: {
+      ...taskObj,
+      file: buildUrl(taskObj.file, req),
+      recorde: buildUrl(taskObj.recorde, req),
+    },
   });
 };

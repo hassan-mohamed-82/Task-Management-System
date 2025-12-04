@@ -8,6 +8,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { connectDB } from "./models/connection";
+import { startTaskScheduler } from "./utils/taskActivation";
 import path from "path";
 
 dotenv.config();
@@ -47,6 +48,7 @@ app.use(errorHandler);
 
 const server = http.createServer(app);
 
+startTaskScheduler();
 server.listen(3000, () => {
   console.log("Server is running on http://localhost:3000");
 });

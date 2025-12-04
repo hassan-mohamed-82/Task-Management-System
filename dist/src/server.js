@@ -13,6 +13,7 @@ const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const helmet_1 = __importDefault(require("helmet"));
 const connection_1 = require("./models/connection");
+const taskActivation_1 = require("./utils/taskActivation");
 const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 // Error handler
 app.use(errorHandler_1.errorHandler);
 const server = http_1.default.createServer(app);
+(0, taskActivation_1.startTaskScheduler)();
 server.listen(3000, () => {
     console.log("Server is running on http://localhost:3000");
 });

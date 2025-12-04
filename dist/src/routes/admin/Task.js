@@ -12,6 +12,7 @@ route.get("/", (0, authorized_1.authorizeRoles)("admin", "user"), (0, authorized
 route.get("/:id", (0, authorized_1.authorizeRoles)("admin", "user"), (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "admin"]), (0, catchAsync_1.catchAsync)(Task_1.getTaskById));
 route.post("/", (0, authorized_1.authorizeRoles)("admin", "user"), (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "admin"]), multer_1.uploadTaskFiles, (0, validation_1.validate)(Task_2.createTaskSchema), (0, catchAsync_1.catchAsync)(Task_1.createTask));
 route.post("/approve_reject/:id", (0, authorized_1.authorizeRoles)("admin", "user"), (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "admin"]), (0, catchAsync_1.catchAsync)(Task_1.approveOrRejectTask));
+route.post("/toggle_status/:id", (0, authorized_1.authorizeRoles)("admin", "user"), (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "admin"]), (0, catchAsync_1.catchAsync)(Task_1.toggleTaskStatus));
 route.put("/:id", (0, authorized_1.authorizeRoles)("admin", "user"), (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "admin"]), (0, validation_1.validate)(Task_2.updateTaskSchema), (0, catchAsync_1.catchAsync)(Task_1.updateTask));
 route.delete("/:id", (0, authorized_1.authorizeRoles)("admin", "user"), (0, authorized_1.checkProjectOrTaskRole)(["teamlead", "admin"]), (0, catchAsync_1.catchAsync)(Task_1.deleteTask));
 exports.default = route;

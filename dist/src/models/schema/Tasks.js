@@ -41,6 +41,7 @@ const taskSchema = new mongoose_1.Schema({
     projectId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Project', required: true },
     start_date: { type: Date },
     end_date: { type: Date },
+    is_active: { type: Boolean, default: true },
     priority: {
         type: String,
         enum: ['low', 'medium', 'high'],
@@ -48,7 +49,7 @@ const taskSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: ["Pending", 'in_progress', 'waiting_for_approve', 'Approved', 'rejected'],
+        enum: ["Pending", 'in_progress', 'waiting_for_approve', 'Approved', 'rejected', 'null'],
         default: 'Pending',
     },
     recorde: { type: String, default: '' },

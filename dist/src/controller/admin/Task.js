@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.approveOrRejectTask = exports.deleteTask = exports.updateTask = exports.getTaskById = exports.getAllTasks = exports.createTask = void 0;
+exports.toggleTaskStatus = exports.approveOrRejectTask = exports.deleteTask = exports.updateTask = exports.getTaskById = exports.getAllTasks = exports.createTask = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const Errors_1 = require("../../Errors");
 const response_1 = require("../../utils/response");
@@ -72,45 +72,61 @@ const createTask = async (req, res) => {
     const user = req.user?._id;
     if (!user)
         throw new Errors_1.UnauthorizedError("Access denied.");
-    const { name, description, projectId, priority, end_date, Depatment_id } = req.body;
+    const { name, description, projectId, priority, start_date, end_date, Depatment_id } = req.body;
     if (!name)
         throw new BadRequest_1.BadRequest("Task name is required");
     if (!projectId)
         throw new BadRequest_1.BadRequest("Project ID is required");
-    // تأكد أن المشروع موجود
     const project = await project_1.ProjectModel.findById(projectId);
     if (!project)
         throw new Errors_1.NotFound("Project not found");
-    // تحقق صلاحية المستخدم في المشروع
     const checkuseratproject = await User_Project_1.UserProjectModel.findOne({
         user_id: user,
-        project_id: projectId
+        project_id: projectId,
     });
     const role = req.user?.role?.toLowerCase();
     if (role !== "admin") {
-        const userProjectRole = checkuseratproject?.role?.toLowerCase() ?? '';
+        const userProjectRole = checkuseratproject?.role?.toLowerCase() ?? "";
         if (!checkuseratproject || ["member", "membercanapprove"].includes(userProjectRole)) {
             throw new Errors_1.UnauthorizedError("You can't create a task for this project");
         }
     }
-    const endDateObj = end_date ? new Date(end_date) : undefined;
-    // التعامل مع الملفات (pdf أو صوت أو أي نوع) من multer
+    // ✅ تحويل التواريخ
+    const startDateObj = start_date ? new Date(start_date) : null;
+    const endDateObj = end_date ? new Date(end_date) : null;
+    // ✅ تحديد هل يتفعل الآن أو ينتظر
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let shouldBeActive = false;
+    let initialStatus = null;
+    if (startDateObj) {
+        const startDay = new Date(startDateObj);
+        startDay.setHours(0, 0, 0, 0);
+        if (startDay <= today) {
+            // التاريخ اليوم أو في الماضي → يتفعل فوراً
+            shouldBeActive = true;
+            initialStatus = "Pending";
+        }
+        // لو في المستقبل → يفضل inactive وينتظر الـ Cron
+    }
     const files = req.files;
-    const filePath = files?.file?.[0]?.path || null; // لوكال: D:\Task... | سيرفر: /var/www/.../dist/uploads/tasks/...
-    const recordPath = files?.recorde?.[0]?.path || null; // نفس الفكرة للتسجيل
+    const filePath = files?.file?.[0]?.path || null;
+    const recordPath = files?.recorde?.[0]?.path || null;
     const task = new Tasks_1.TaskModel({
         name,
         description,
         projectId: new mongoose_1.Types.ObjectId(projectId),
         priority,
+        start_date: startDateObj,
         end_date: endDateObj,
         Depatment_id: Depatment_id ? new mongoose_1.Types.ObjectId(Depatment_id) : undefined,
-        file: filePath, // نخزن المسار الأصلي اللي راجع من multer
+        file: filePath,
         recorde: recordPath,
         createdBy: user,
+        is_active: shouldBeActive,
+        status: initialStatus,
     });
     await task.save();
-    // نحول المسار لمسار عام يمكن الوصول له من /uploads
     const publicFilePath = toPublicPath(task.file);
     const publicRecordPath = toPublicPath(task.recorde);
     const fileUrl = publicFilePath
@@ -121,7 +137,7 @@ const createTask = async (req, res) => {
         : null;
     (0, response_1.SuccessResponse)(res, {
         message: "Task created successfully",
-        task: { ...task.toObject(), file: fileUrl, recorde: recordUrl }
+        task: { ...task.toObject(), file: fileUrl, recorde: recordUrl },
     });
 };
 exports.createTask = createTask;
@@ -149,7 +165,19 @@ const getAllTasks = async (req, res) => {
         file: buildUrl(t.file, req),
         recorde: buildUrl(t.recorde, req),
     }));
-    (0, response_1.SuccessResponse)(res, { message: "Tasks fetched successfully", tasks });
+    // ✅ تقسيم الـ Tasks
+    const activeTasks = tasks.filter((t) => t.is_active === true);
+    const inactiveTasks = tasks.filter((t) => t.is_active === false);
+    (0, response_1.SuccessResponse)(res, {
+        message: "Tasks fetched successfully",
+        activeTasks,
+        inactiveTasks,
+        summary: {
+            total: tasks.length,
+            active: activeTasks.length,
+            inactive: inactiveTasks.length,
+        },
+    });
 };
 exports.getAllTasks = getAllTasks;
 // --------------------------
@@ -329,3 +357,57 @@ const approveOrRejectTask = async (req, res) => {
     });
 };
 exports.approveOrRejectTask = approveOrRejectTask;
+const toggleTaskStatus = async (req, res) => {
+    const userId = req.user?._id;
+    if (!userId)
+        throw new Errors_1.UnauthorizedError("Access denied.");
+    const { id } = req.params;
+    const { is_active } = req.body;
+    if (!mongoose_1.default.Types.ObjectId.isValid(id))
+        throw new BadRequest_1.BadRequest("Invalid Task ID");
+    if (typeof is_active !== "boolean")
+        throw new BadRequest_1.BadRequest("is_active must be a boolean");
+    const task = await Tasks_1.TaskModel.findById(id);
+    if (!task)
+        throw new Errors_1.NotFound("Task not found");
+    const userProject = await User_Project_1.UserProjectModel.findOne({
+        user_id: userId,
+        project_id: task.projectId,
+    });
+    if (!userProject)
+        throw new Errors_1.UnauthorizedError("You are not assigned to this project");
+    const role = (userProject.role || "").toLowerCase();
+    if (!["admin", "teamlead"].includes(role))
+        throw new Errors_1.UnauthorizedError("You don't have permission to update this task");
+    if (task.is_active === is_active) {
+        throw new BadRequest_1.BadRequest(`Task is already ${is_active ? "active" : "inactive"}`);
+    }
+    if (is_active) {
+        // ✅ تفعيل يدوي
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        task.is_active = true;
+        task.status = "Pending";
+        // لو مفيش start_date، نحط تاريخ اليوم
+        if (!task.start_date) {
+            task.start_date = today;
+        }
+    }
+    else {
+        // ✅ تعطيل
+        task.is_active = false;
+        task.status = "null";
+        // start_date يفضل زي ما هو (مش بنمسحه)
+    }
+    await task.save();
+    const taskObj = task.toObject();
+    (0, response_1.SuccessResponse)(res, {
+        message: `Task ${is_active ? "activated" : "deactivated"} successfully`,
+        task: {
+            ...taskObj,
+            file: buildUrl(taskObj.file, req),
+            recorde: buildUrl(taskObj.recorde, req),
+        },
+    });
+};
+exports.toggleTaskStatus = toggleTaskStatus;

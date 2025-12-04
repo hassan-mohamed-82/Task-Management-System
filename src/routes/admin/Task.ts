@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {createTask,getAllTasks,getTaskById,updateTask,deleteTask,approveOrRejectTask} from "../../controller/admin/Task"
+import {createTask,getAllTasks,getTaskById,updateTask,deleteTask,approveOrRejectTask,toggleTaskStatus} from "../../controller/admin/Task"
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
 import { createTaskSchema, updateTaskSchema } from "../../validation/admin/Task";
@@ -27,6 +27,9 @@ route.post("/approve_reject/:id",authorizeRoles("admin", "user"),
 checkProjectOrTaskRole(["teamlead", "admin"]),
  catchAsync(approveOrRejectTask));
 
+route.post("/toggle_status/:id",authorizeRoles("admin", "user"),
+checkProjectOrTaskRole(["teamlead", "admin"]),
+ catchAsync(toggleTaskStatus));
 route.put("/:id",authorizeRoles("admin", "user"),
 checkProjectOrTaskRole(["teamlead", "admin"]),
  validate(updateTaskSchema), catchAsync(updateTask));

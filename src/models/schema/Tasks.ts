@@ -3,7 +3,7 @@ import mongoose, { Schema, model, Document, Types } from 'mongoose';
 import { IUser } from './auth/User';
 import { IProject } from './project';
 
-export type TaskStatus = 'Pending' | 'in_progress' | 'Approved' | 'rejected' | 'waiting_for_approve';
+export type TaskStatus = 'Pending' | 'in_progress' | 'Approved' | 'rejected' | 'waiting_for_approve' | 'null';
 
 export interface ITask extends Document {
   name: string;
@@ -15,6 +15,7 @@ export interface ITask extends Document {
   recorde: string;
   file: string;
   status: TaskStatus;
+  is_active: boolean;
   userId: Types.ObjectId | IUser;
   Depatment_id?: Types.ObjectId;
   createdBy: Types.ObjectId;
@@ -29,6 +30,7 @@ const taskSchema = new Schema<ITask>(
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     start_date: { type: Date },
     end_date: { type: Date },
+    is_active: { type: Boolean, default: true },
     priority: {
       type: String,
       enum: ['low', 'medium', 'high'],
@@ -36,7 +38,7 @@ const taskSchema = new Schema<ITask>(
     },
     status: {
       type: String,
-      enum: ["Pending",'in_progress','waiting_for_approve','Approved', 'rejected'],
+      enum: ["Pending",'in_progress','waiting_for_approve','Approved', 'rejected','null'],
       default: 'Pending',
     },
     recorde: { type: String, default: '' },
