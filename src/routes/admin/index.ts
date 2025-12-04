@@ -20,7 +20,6 @@ route.use(authenticated);
 
 
 
-route.use(authenticated);
 
 // /tasks route
 route.use(

@@ -19,7 +19,6 @@ const authorized_2 = require("../../middlewares/authorized");
 const route = (0, express_1.Router)();
 route.use("/auth", auth_1.default);
 route.use(authenticated_1.authenticated);
-route.use(authenticated_1.authenticated);
 // /tasks route
 route.use("/tasks", Task_1.default);
 // /user-project route

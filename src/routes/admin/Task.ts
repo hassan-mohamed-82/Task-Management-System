@@ -27,7 +27,7 @@ route.post("/approve_reject/:id",authorizeRoles("admin", "user"),
 checkProjectOrTaskRole(["teamlead", "admin"]),
  catchAsync(approveOrRejectTask));
 
-route.post("/toggle_status/:id",authorizeRoles("admin", "user"),
+route.put("/toggle_status/:id",authorizeRoles("admin", "user"),
 checkProjectOrTaskRole(["teamlead", "admin"]),
  catchAsync(toggleTaskStatus));
 route.put("/:id",authorizeRoles("admin", "user"),
