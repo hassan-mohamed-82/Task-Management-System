@@ -252,182 +252,44 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
 };
 
 
-export const getUserTaskByTaskId = async (req: Request, res: Response) => {
-  const userId = req.user?._id;
-  if (!userId) throw new BadRequest("User ID is required");
-
-  const { taskId } = req.params;
-  const { filterByRole, filterByStatus } = req.query;
-
-  if (!taskId) throw new BadRequest("Task ID is required");
-
-  if (!mongoose.Types.ObjectId.isValid(taskId)) {
-    throw new BadRequest("Invalid Task ID");
-  }
-
-  // 1. نجيب الـ UserTask بتاعة اليوزر الحالي (هنا taskId = UserTaskId)
-  const userTask = await UserTaskModel.findOne({
-    _id: taskId,
-    user_id: userId,
-  });
-
-  if (!userTask) throw new NotFound("UserTask not found for this user");
-
-  // 2. نتأكد من الصلاحيات
-  const allowedRoles = ["member", "membercanapprove", "teamlead", "admin"];
-  const role = String(userTask.role || "").toLowerCase();
-
-  if (!allowedRoles.includes(role)) {
-    throw new UnauthorizedError("You are not allowed to access this task");
-  }
-
-  // 3. بناء query ديناميكي للفلترة (على مستوى كل الـ UserTask لنفس الـ Task)
-  const query: any = { task_id: userTask.task_id };
-
-  if (filterByRole) {
-    query.role = filterByRole;
-  }
-
-  if (filterByStatus) {
-    query.status = filterByStatus;
-  }
-
-  // 4. جلب كل المستخدمين على نفس التاسك
-  const allUsersOnTask = await UserTaskModel.find(query)
-    .populate("user_id", "name email avatar phone")
-    .populate({
-      path: "task_id",
-      select:
-        "name description status priority start_date end_date is_finished file recorde projectId",
-      populate: {
-        path: "projectId",
-        select: "name description",
-      },
+export const getTaskDetailsForUser = async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+    if (!userId) throw new BadRequest("User ID is required");
+    
+    const { taskId } = req.params;
+    if (!taskId) throw new BadRequest("Task ID is required");
+    
+    // جيب الـ Task الأول
+    const task = await TaskModel.findOne({ _id: taskId });
+    if (!task) throw new NotFound("Task not found");
+    
+    // تحقق إن اليوزر في المشروع
+    const userProject = await UserProjectModel.findOne({ 
+        user_id: userId, 
+        project_id: task.projectId 
+    });
+    if (!userProject) throw new NotFound("User not found in this project");
+    
+    // تحقق من الصلاحيات
+    const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
+    const projectRole = String(userProject.role || "").toLowerCase();
+    if (!allowedRoles.includes(projectRole)) {
+        throw new UnauthorizedError("You are not allowed to access this project tasks");
+    }
+    
+    // جيب الـ UserTask - بدون شرط is_active لو مش متأكد إنه موجود
+    const userTask = await UserTaskModel.findOne({ 
+        task_id: taskId, 
+        user_id: userId 
     })
-    .populate({
-      path: "User_taskId",
-      populate: {
-        path: "user_id",
-        select: "name email",
-      },
-    })
-    .sort({ createdAt: -1 });
-
-  // 5. استخراج تفاصيل التاسك + تحويل file / recorde لـ URL
-  let taskDetails: any = null;
-
-  if (allUsersOnTask.length > 0 && allUsersOnTask[0].task_id) {
-    const rawTaskDoc: any = allUsersOnTask[0].task_id;
-
-    const rawTask =
-      typeof rawTaskDoc.toObject === "function"
-        ? rawTaskDoc.toObject()
-        : rawTaskDoc;
-
-    // دعم إنهم يبقوا string واحدة أو array
-    const file = Array.isArray(rawTask.file)
-      ? rawTask.file.map((f: string) => buildUrl(f, req))
-      : buildUrl(rawTask.file, req);
-
-    const recorde = Array.isArray(rawTask.recorde)
-      ? rawTask.recorde.map((r: string) => buildUrl(r, req))
-      : buildUrl(rawTask.recorde, req);
-
-    taskDetails = {
-      ...rawTask,
-      file,
-      recorde,
-    };
-  }
-
-  // 6. تنسيق بيانات أعضاء الفريق
-  const teamMembers = allUsersOnTask.map((ut) => ({
-    userTaskId: ut._id,
-    user: ut.user_id,
-    role: ut.role,
-    status: ut.status,
-    isFinished: ut.is_finished,
-    relatedTasks: ut.User_taskId || [],
-  }));
-
-  // 7. حساب الإحصائيات
-  const allTasksForStats = await UserTaskModel.find({
-    task_id: userTask.task_id,
-  });
-
-  const summary = {
-    totalMembers: allTasksForStats.length,
-    byStatus: {
-      pending: allTasksForStats.filter(
-        (ut) => (ut.status || "").toLowerCase() === "pending"
-      ).length,
-      in_progress: allTasksForStats.filter(
-        (ut) => (ut.status || "").toLowerCase() === "in_progress"
-      ).length,
-      done: allTasksForStats.filter(
-        (ut) => (ut.status || "").toLowerCase() === "done"
-      ).length,
-      pending_edit: allTasksForStats.filter(
-        (ut) => (ut.status || "").toLowerCase() === "pending_edit"
-      ).length,
-      approved: allTasksForStats.filter(
-        (ut) =>
-          (ut.status || "").toLowerCase() ===
-          "approved from member_can_approve"
-      ).length,
-      rejected: allTasksForStats.filter(
-        (ut) =>
-          (ut.status || "").toLowerCase() ===
-          "rejected from member_can_rejected"
-      ).length,
-    },
-    byRole: {
-      members: allTasksForStats.filter(
-        (ut) => String(ut.role) === "member"
-      ).length,
-      memberCanApprove: allTasksForStats.filter(
-        (ut) => String(ut.role) === "membercanapprove"
-      ).length,
-      teamLead: allTasksForStats.filter(
-        (ut) => String(ut.role) === "teamlead"
-      ).length,
-    },
-    completionRate:
-      allTasksForStats.length > 0
-        ? Math.round(
-            (allTasksForStats.filter((ut) => ut.is_finished).length /
-              allTasksForStats.length) *
-              100
-          )
-        : 0,
-  };
-
-  // 8. بيانات اليوزر الحالي
-  const currentUserData = {
-    userTaskId: userTask._id,
-    role: userTask.role,
-    status: userTask.status,
-    isFinished: userTask.is_finished,
-  };
-
-  // 9. بناء الـ Response النهائي
-  const response = {
-    task: taskDetails,
-    currentUser: currentUserData,
-    teamMembers: teamMembers,
-    summary: summary,
-    filters: {
-      appliedRoleFilter: filterByRole || null,
-      appliedStatusFilter: filterByStatus || null,
-      totalFiltered: teamMembers.length,
-    },
-  };
-
-  return SuccessResponse(res, {
-    message: "Task fetched successfully",
-    data: response,
-  });
+    .populate('user_id', 'name email')
+    .populate('task_id', 'name description status priority start_date end_date is_finished');
+    
+    if (!userTask) throw new NotFound("You are not assigned to this task");
+    
+    SuccessResponse(res, { message: "Task found successfully", data: userTask });
 };
+
 
 export const reviewUserTaskByApprover = async (req: Request, res: Response) => {
   const approverId = req.user?._id;

@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   updateUserTaskStatus,
   getalltaskatprojectforuser,
-  getUserTaskByTaskId,
+  getTaskDetailsForUser,
   reviewUserTaskByApprover,
   selection,
 } from "../../controller/user/taske";
@@ -22,7 +22,7 @@ route.put("/review/:taskId",
 );
 
 route.get("/task/:taskId",
-  catchAsync(getUserTaskByTaskId)
+  catchAsync(getTaskDetailsForUser)
 );
 
 // 3) في الآخر الـ routes الديناميكية العامة
