@@ -35,6 +35,7 @@ export const addUserToTask = async (req: Request, res: Response) => {
     task_id,
     role: role || 'member',
     User_taskId,
+    is_active: true,
     status: 'pending',
   });
 
@@ -115,7 +116,7 @@ export const getAllUserTask = async (req: Request, res: Response) => {
   const task = await TaskModel.findOne({ _id: id, createdBy: adminId });
   if (!task) throw new NotFound("Task not found in your workspace");
 
-  const userTasks = await UserTaskModel.find({ task_id: id })
+  const userTasks = await UserTaskModel.find({ task_id: id , is_active: true})
     .populate("user_id", "name email role");
 
   const usersWithUserTaskId = userTasks.map(ut => ({
@@ -123,6 +124,7 @@ export const getAllUserTask = async (req: Request, res: Response) => {
     user: ut.user_id,
     roleInsideTask: ut.role,
     status: ut.status,
+    is_active: ut.is_active,
     is_finished: ut.is_finished
   }));
 

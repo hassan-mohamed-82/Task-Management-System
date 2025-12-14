@@ -67,6 +67,10 @@ const UserTaskSchema = new mongoose_1.Schema({
     User_taskId: [{
             type: mongoose_1.Schema.Types.ObjectId,
             ref: "User_Task",
-        }]
+        }],
+    is_active: {
+        type: Boolean,
+        default: true,
+    },
 }, { timestamps: true });
 exports.UserTaskModel = mongoose_1.default.model("User_Task", UserTaskSchema);

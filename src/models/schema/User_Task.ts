@@ -9,6 +9,7 @@ export interface IUserTask extends Document {
   rejection_reasonId:mongoose.Types.ObjectId;
 User_taskId: mongoose.Types.ObjectId[];
   is_finished?: boolean;
+  is_active?: boolean;
   role: 'member' | 'membercanapprove';  
 }
 
@@ -45,7 +46,11 @@ const UserTaskSchema = new Schema<IUserTask>(
         User_taskId:[{
       type: Schema.Types.ObjectId,
       ref: "User_Task",
-    }]
+    }],
+      is_active: {
+      type: Boolean,
+      default: true,
+    },
 
    
   },
