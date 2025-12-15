@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllUserTask = exports.removedUserFromTask = exports.updaterole = exports.addUserToTask = void 0;
+exports.getAllUserTask = exports.removedUserFromTask = exports.updateUserTaskStatus = exports.updaterole = exports.addUserToTask = void 0;
 const Tasks_1 = require("../../models/schema/Tasks");
 const User_Project_1 = require("../../models/schema/User_Project");
 const User_Task_1 = require("../../models/schema/User_Task");
@@ -13,7 +13,7 @@ const response_1 = require("../../utils/response");
 // --------------------------
 const addUserToTask = async (req, res) => {
     const adminId = req.user?._id;
-    const { user_id, task_id, role, User_taskId } = req.body;
+    const { user_id, task_id, role, User_taskId, description } = req.body;
     if (!user_id || !task_id)
         throw new BadRequest_1.BadRequest("User ID and Task ID are required");
     // SaaS check: task must belong to current admin
@@ -33,6 +33,7 @@ const addUserToTask = async (req, res) => {
         User_taskId,
         is_active: true,
         status: 'pending',
+        description,
     });
     (0, response_1.SuccessResponse)(res, { message: "User added to task successfully", data: newUserTask });
 };
@@ -47,7 +48,7 @@ const updaterole = async (req, res) => {
         throw new unauthorizedError_1.UnauthorizedError("Only Admin or TeamLead can add users to task");
     }
     const { id } = req.params; // UserTask ID
-    const { role, user_id } = req.body;
+    const { role, user_id, description } = req.body;
     if (!id)
         throw new BadRequest_1.BadRequest("UserTask ID is required");
     // SaaS check: Task must belong to admin
@@ -57,7 +58,10 @@ const updaterole = async (req, res) => {
     const task = await Tasks_1.TaskModel.findOne({ _id: userTask.task_id, createdBy: adminId });
     if (!task)
         throw new NotFound_1.NotFound("You do not have access to this task");
-    userTask.role = role;
+    if (role)
+        userTask.role = role;
+    if (description !== undefined)
+        userTask.description = description;
     await userTask.save();
     (0, response_1.SuccessResponse)(res, { message: "User role updated successfully", data: userTask });
 };
@@ -65,6 +69,49 @@ exports.updaterole = updaterole;
 // --------------------------
 // UPDATE USER TASK STATUS
 // --------------------------
+const updateUserTaskStatus = async (req, res) => {
+    const userId = req.user?._id;
+    const globalRole = String(req.user?.role || "").toLowerCase();
+    if (!userId)
+        throw new unauthorizedError_1.UnauthorizedError("Access denied.");
+    const { id } = req.params; // UserTask ID
+    const { status } = req.body;
+    if (!id)
+        throw new BadRequest_1.BadRequest("UserTask ID is required");
+    // Get the UserTask first
+    const userTask = await User_Task_1.UserTaskModel.findById(id).populate('task_id');
+    if (!userTask)
+        throw new NotFound_1.NotFound("UserTask not found");
+    // Get the task to find the project
+    const task = await Tasks_1.TaskModel.findById(userTask.task_id);
+    if (!task)
+        throw new NotFound_1.NotFound("Task not found");
+    // Admin bypass - can access any task they created
+    if (globalRole === "admin") {
+        if (task.createdBy?.toString() !== userId.toString()) {
+            throw new unauthorizedError_1.UnauthorizedError("You do not have access to this task");
+        }
+    }
+    else {
+        // For users (teamlead), check project membership and role
+        const userProject = await User_Project_1.UserProjectModel.findOne({
+            user_id: userId,
+            project_id: task.projectId
+        });
+        if (!userProject) {
+            throw new unauthorizedError_1.UnauthorizedError("You are not assigned to this project");
+        }
+        const projectRole = (userProject.role || "").toLowerCase();
+        if (!["admin", "teamlead"].includes(projectRole)) {
+            throw new unauthorizedError_1.UnauthorizedError("Only Admin or TeamLead can update user task status");
+        }
+    }
+    if (status)
+        userTask.status = status;
+    await userTask.save();
+    (0, response_1.SuccessResponse)(res, { message: "User task status updated successfully", data: userTask });
+};
+exports.updateUserTaskStatus = updateUserTaskStatus;
 // --------------------------
 // REMOVE USER FROM TASK
 // --------------------------
@@ -109,7 +156,8 @@ const getAllUserTask = async (req, res) => {
         roleInsideTask: ut.role,
         status: ut.status,
         is_active: ut.is_active,
-        is_finished: ut.is_finished
+        is_finished: ut.is_finished,
+        description: ut.description
     }));
     return (0, response_1.SuccessResponse)(res, { message: "User tasks fetched successfully", users: usersWithUserTaskId });
 };

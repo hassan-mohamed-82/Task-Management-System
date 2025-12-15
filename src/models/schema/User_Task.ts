@@ -1,16 +1,17 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
-import {  TaskStatus } from "./Tasks";
+import { TaskStatus } from "./Tasks";
 import { IUser } from "./auth/User";
 
 export interface IUserTask extends Document {
   user_id: mongoose.Types.ObjectId;
   task_id: mongoose.Types.ObjectId;
-  status?:'pending' | 'in_progress' | 'done' | 'Approved from Member_can_approve' | 'rejected from Member_can_rejected' | 'pending_edit' | 'in_progress_edit' ;
-  rejection_reasonId:mongoose.Types.ObjectId;
-User_taskId: mongoose.Types.ObjectId[];
+  status?: 'pending' | 'in_progress' | 'done' | 'Approved from Member_can_approve' | 'rejected from Member_can_rejected' | 'pending_edit' | 'in_progress_edit';
+  rejection_reasonId: mongoose.Types.ObjectId;
+  User_taskId: mongoose.Types.ObjectId[];
   is_finished?: boolean;
   is_active?: boolean;
-  role: 'member' | 'membercanapprove';  
+  role: 'member' | 'membercanapprove';
+  description?: string;
 }
 
 const UserTaskSchema = new Schema<IUserTask>(
@@ -27,7 +28,7 @@ const UserTaskSchema = new Schema<IUserTask>(
     },
     status: {
       type: String,
-     enum: ['pending', 'in_progress', 'done', 'pending_edit',"in_progress_edit", 'Approved from Member_can_approve', 'rejected from Member_can_rejected'],
+      enum: ['pending', 'in_progress', 'done', 'pending_edit', "in_progress_edit", 'Approved from Member_can_approve', 'rejected from Member_can_rejected'],
       required: true,
     },
     is_finished: {
@@ -38,21 +39,23 @@ const UserTaskSchema = new Schema<IUserTask>(
       type: Schema.Types.ObjectId, // سبب الرفض لو الحالة rejected
       ref: "RejectedReson",
     },
-    role:{
+    role: {
       type: String,
-      enum: [ 'member', 'membercanapprove'],
+      enum: ['member', 'membercanapprove'],
       default: 'member',
     },
-        User_taskId:[{
+    User_taskId: [{
       type: Schema.Types.ObjectId,
       ref: "User_Task",
     }],
-      is_active: {
+    is_active: {
       type: Boolean,
       default: true,
     },
+    description: {
+      type: String,
+    },
 
-   
   },
   { timestamps: true }
 );

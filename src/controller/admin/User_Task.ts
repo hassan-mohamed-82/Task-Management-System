@@ -16,7 +16,7 @@ import { SuccessResponse } from '../../utils/response';
 // --------------------------
 export const addUserToTask = async (req: Request, res: Response) => {
   const adminId = req.user?._id;
-  const { user_id, task_id, role, User_taskId } = req.body;
+  const { user_id, task_id, role, User_taskId, description } = req.body;
 
   if (!user_id || !task_id) throw new BadRequest("User ID and Task ID are required");
 
@@ -37,6 +37,7 @@ export const addUserToTask = async (req: Request, res: Response) => {
     User_taskId,
     is_active: true,
     status: 'pending',
+    description,
   });
 
   SuccessResponse(res, { message: "User added to task successfully", data: newUserTask });
@@ -54,7 +55,7 @@ export const updaterole = async (req: Request, res: Response) => {
   }
 
   const { id } = req.params; // UserTask ID
-  const { role, user_id } = req.body;
+  const { role, user_id, description } = req.body;
   if (!id) throw new BadRequest("UserTask ID is required");
 
   // SaaS check: Task must belong to admin
@@ -64,7 +65,8 @@ export const updaterole = async (req: Request, res: Response) => {
   const task = await TaskModel.findOne({ _id: userTask.task_id, createdBy: adminId });
   if (!task) throw new NotFound("You do not have access to this task");
 
-  userTask.role = role;
+  if (role) userTask.role = role;
+  if (description !== undefined) userTask.description = description;
   await userTask.save();
 
   SuccessResponse(res, { message: "User role updated successfully", data: userTask });
@@ -73,6 +75,51 @@ export const updaterole = async (req: Request, res: Response) => {
 // --------------------------
 // UPDATE USER TASK STATUS
 // --------------------------
+export const updateUserTaskStatus = async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const globalRole = String(req.user?.role || "").toLowerCase();
+
+  if (!userId) throw new UnauthorizedError("Access denied.");
+
+  const { id } = req.params; // UserTask ID
+  const { status } = req.body;
+  if (!id) throw new BadRequest("UserTask ID is required");
+
+  // Get the UserTask first
+  const userTask = await UserTaskModel.findById(id).populate('task_id');
+  if (!userTask) throw new NotFound("UserTask not found");
+
+  // Get the task to find the project
+  const task = await TaskModel.findById(userTask.task_id);
+  if (!task) throw new NotFound("Task not found");
+
+  // Admin bypass - can access any task they created
+  if (globalRole === "admin") {
+    if (task.createdBy?.toString() !== userId.toString()) {
+      throw new UnauthorizedError("You do not have access to this task");
+    }
+  } else {
+    // For users (teamlead), check project membership and role
+    const userProject = await UserProjectModel.findOne({
+      user_id: userId,
+      project_id: task.projectId
+    });
+
+    if (!userProject) {
+      throw new UnauthorizedError("You are not assigned to this project");
+    }
+
+    const projectRole = (userProject.role || "").toLowerCase();
+    if (!["admin", "teamlead"].includes(projectRole)) {
+      throw new UnauthorizedError("Only Admin or TeamLead can update user task status");
+    }
+  }
+
+  if (status) userTask.status = status;
+  await userTask.save();
+
+  SuccessResponse(res, { message: "User task status updated successfully", data: userTask });
+};
 
 
 // --------------------------
@@ -116,7 +163,7 @@ export const getAllUserTask = async (req: Request, res: Response) => {
   const task = await TaskModel.findOne({ _id: id, createdBy: adminId });
   if (!task) throw new NotFound("Task not found in your workspace");
 
-  const userTasks = await UserTaskModel.find({ task_id: id , is_active: true})
+  const userTasks = await UserTaskModel.find({ task_id: id, is_active: true })
     .populate("user_id", "name email role");
 
   const usersWithUserTaskId = userTasks.map(ut => ({
@@ -125,7 +172,8 @@ export const getAllUserTask = async (req: Request, res: Response) => {
     roleInsideTask: ut.role,
     status: ut.status,
     is_active: ut.is_active,
-    is_finished: ut.is_finished
+    is_finished: ut.is_finished,
+    description: ut.description
   }));
 
   return SuccessResponse(res, { message: "User tasks fetched successfully", users: usersWithUserTaskId });
