@@ -38,18 +38,18 @@ const taskSchema = new Schema<ITask>(
     },
     status: {
       type: String,
-      enum: ["Pending",'in_progress','waiting_for_approve','Approved', 'rejected','null'],
+      enum: ["Pending", 'in_progress', 'waiting_for_approve', 'Approved', 'rejected', 'null'],
       default: 'Pending',
     },
     recorde: { type: String, default: '' },
     file: { type: String, default: '' },
     Depatment_id: { type: Schema.Types.ObjectId, ref: 'Department' },
-      createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
   },
   {
-    timestamps: true, 
-   }
+    timestamps: true,
+  }
 );
 
 export const TaskModel = model<ITask>('Task', taskSchema);

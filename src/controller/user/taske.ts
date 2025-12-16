@@ -40,28 +40,28 @@ const buildUrl = (p: string | null | undefined, req: Request) => {
   return `${req.protocol}://${req.get("host")}/${publicPath}`;
 };
 export const getalltaskatprojectforuser = async (req: Request, res: Response) => {
-    const userId = req.user?._id;
-    if (!userId) throw new BadRequest("User ID is required");
-    const { taskId}=req.params;
+  const userId = req.user?._id;
+  if (!userId) throw new BadRequest("User ID is required");
+  const { taskId } = req.params;
 
-    if (!taskId) throw new BadRequest("Task ID is required");
-    const task = await TaskModel.findOne({ _id: taskId });
-    if (!task) throw new NotFound("Task not found");
-    const usertask=await UserTaskModel.findOne({task_id:taskId,user_id:userId});
-    if(!usertask) throw new BadRequest("You are not allowed to access this project tasks");
-    const userProject = await UserProjectModel.findOne({ user_id: userId, project_id: task.projectId });
-    if (!userProject) throw new NotFound("User not found in this project");
-    // السماح للأدوار المطلوبة فق
-    const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
-    const projectRole = String(userProject.role || "").toLowerCase();
-    if (!allowedRoles.includes(projectRole)) {
-        throw new UnauthorizedError("You are not allowed to access this project tasks");
-    }
+  if (!taskId) throw new BadRequest("Task ID is required");
+  const task = await TaskModel.findOne({ _id: taskId });
+  if (!task) throw new NotFound("Task not found");
+  const usertask = await UserTaskModel.findOne({ task_id: taskId, user_id: userId });
+  if (!usertask) throw new BadRequest("You are not allowed to access this project tasks");
+  const userProject = await UserProjectModel.findOne({ user_id: userId, project_id: task.projectId });
+  if (!userProject) throw new NotFound("User not found in this project");
+  // السماح للأدوار المطلوبة فق
+  const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
+  const projectRole = String(userProject.role || "").toLowerCase();
+  if (!allowedRoles.includes(projectRole)) {
+    throw new UnauthorizedError("You are not allowed to access this project tasks");
+  }
 
-    const tasks = await UserTaskModel.find({ task_id: taskId ,user_id:userId,is_active:true})
-    .populate('user_id' , 'name email')
-    .populate('task_id' , 'name description status priority start_date end_date is_finished ');
-    SuccessResponse(res, { message: "Tasks found successfully", data: tasks });
+  const tasks = await UserTaskModel.find({ task_id: taskId, user_id: userId, is_active: true, })
+    .populate('user_id', 'name email')
+    .populate('task_id', 'name description status priority start_date end_date is_finished ');
+  SuccessResponse(res, { message: "Tasks found successfully", data: tasks });
 };
 
 
@@ -253,41 +253,41 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
 
 
 export const getTaskDetailsForUser = async (req: Request, res: Response) => {
-    const userId = req.user?._id;
-    if (!userId) throw new BadRequest("User ID is required");
-    
-    const { taskId } = req.params;
-    if (!taskId) throw new BadRequest("Task ID is required");
-    
-    // جيب الـ Task الأول
-    const task = await TaskModel.findOne({ _id: taskId });
-    if (!task) throw new NotFound("Task not found");
-    
-    // تحقق إن اليوزر في المشروع
-    const userProject = await UserProjectModel.findOne({ 
-        user_id: userId, 
-        project_id: task.projectId 
-    });
-    if (!userProject) throw new NotFound("User not found in this project");
-    
-    // تحقق من الصلاحيات
-    const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
-    const projectRole = String(userProject.role || "").toLowerCase();
-    if (!allowedRoles.includes(projectRole)) {
-        throw new UnauthorizedError("You are not allowed to access this project tasks");
-    }
-    
-    // جيب الـ UserTask - بدون شرط is_active لو مش متأكد إنه موجود
-    const userTask = await UserTaskModel.findOne({ 
-        task_id: taskId, 
-        user_id: userId 
-    })
+  const userId = req.user?._id;
+  if (!userId) throw new BadRequest("User ID is required");
+
+  const { taskId } = req.params;
+  if (!taskId) throw new BadRequest("Task ID is required");
+
+  // جيب الـ Task الأول
+  const task = await TaskModel.findOne({ _id: taskId });
+  if (!task) throw new NotFound("Task not found");
+
+  // تحقق إن اليوزر في المشروع
+  const userProject = await UserProjectModel.findOne({
+    user_id: userId,
+    project_id: task.projectId
+  });
+  if (!userProject) throw new NotFound("User not found in this project");
+
+  // تحقق من الصلاحيات
+  const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
+  const projectRole = String(userProject.role || "").toLowerCase();
+  if (!allowedRoles.includes(projectRole)) {
+    throw new UnauthorizedError("You are not allowed to access this project tasks");
+  }
+
+  // جيب الـ UserTask - بدون شرط is_active لو مش متأكد إنه موجود
+  const userTask = await UserTaskModel.findOne({
+    task_id: taskId,
+    user_id: userId
+  })
     .populate('user_id', 'name email')
     .populate('task_id', 'name description status priority start_date end_date is_finished');
-    
-    if (!userTask) throw new NotFound("You are not assigned to this task");
-    
-    SuccessResponse(res, { message: "Task found successfully", data: userTask });
+
+  if (!userTask) throw new NotFound("You are not assigned to this task");
+
+  SuccessResponse(res, { message: "Task found successfully", data: userTask });
 };
 
 
@@ -430,7 +430,7 @@ export const reviewUserTaskByApprover = async (req: Request, res: Response) => {
       if (allApproved) {
         task.status = "waiting_for_approve";
         await task.save();
-      } 
+      }
     }
   }
 

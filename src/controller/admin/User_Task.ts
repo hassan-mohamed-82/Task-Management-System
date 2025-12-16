@@ -29,7 +29,7 @@ export const addUserToTask = async (req: Request, res: Response) => {
 
   const existingUserTask = await UserTaskModel.findOne({ user_id, task_id });
   if (existingUserTask) throw new BadRequest("User already added to this task");
-
+  if (task.status === 'Approved') throw new BadRequest("Task is approved and finished,There is no need to add user to this task");
   const newUserTask = await UserTaskModel.create({
     user_id,
     task_id,
