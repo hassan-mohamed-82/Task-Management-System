@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { TaskModel } from '../../models/schema/Tasks';
+import { ProjectModel } from '../../models/schema/project';
 import { UserProjectModel } from '../../models/schema/User_Project';
 import { IUserTask, UserTaskModel } from '../../models/schema/User_Task';
 import { UserRejectedReason } from '../../models/schema/User_Rejection';
@@ -139,9 +140,14 @@ export const removedUserFromTask = async (req: Request, res: Response) => {
   const task = await TaskModel.findOne({ _id: task_id, createdBy: adminId });
   if (!task) throw new NotFound("You do not have access to this task");
 
-  // Check the user found is the admin or not 
-  // const user = await UserModel.findById(user_id);
-  // if (!user) throw new NotFound("User not found");
+  // Get the project to check if user is the creator
+  const project = await ProjectModel.findById(task.projectId);
+  if (!project) throw new NotFound("Project not found");
+
+  // Prevent removing the project creator
+  if (project.createdBy.toString() === user_id) {
+    throw new BadRequest("Cannot remove the project creator from the task");
+  }
 
   const deletedUserTask = await UserTaskModel.findOneAndDelete({ task_id, user_id });
   if (!deletedUserTask) throw new NotFound("This user is not assigned to this task");

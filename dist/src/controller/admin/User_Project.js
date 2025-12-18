@@ -81,6 +81,14 @@ const deleteUserFromProject = async (req, res) => {
     const { user_id, project_id } = req.params;
     if (!user_id || !project_id)
         throw new BadRequest_1.BadRequest("User ID and Project ID are required");
+    // Check if project exists and get creator
+    const project = await project_1.ProjectModel.findById(project_id);
+    if (!project)
+        throw new NotFound_1.NotFound("Project not found");
+    // Prevent removing the project creator
+    if (project.createdBy.toString() === user_id) {
+        throw new BadRequest_1.BadRequest("Cannot remove the project creator from the project");
+    }
     const userProject = await User_Project_1.UserProjectModel.findOneAndDelete({ user_id, project_id });
     if (!userProject)
         throw new NotFound_1.NotFound("User not found in project");

@@ -7,6 +7,7 @@ import { SubscriptionModel } from "../../models/schema/subscriptions";
 import { UserProjectModel } from "../../models/schema/User_Project";
 import mongoose from "mongoose";
 import { UserTaskModel } from "../../models/schema/User_Task";
+import { TaskModel } from "../../models/schema/Tasks";
 
 export const createProject = async (req: Request, res: Response) => {
   const userId = req.user?._id;
@@ -120,12 +121,28 @@ export const deleteProjectById = async (req: Request, res: Response) => {
   if (!id) throw new BadRequest("Project ID is required");
   if (!mongoose.Types.ObjectId.isValid(id)) throw new BadRequest("Invalid Project ID");
 
-  const project = await ProjectModel.findOneAndDelete({ _id: id, createdBy: new mongoose.Types.ObjectId(userId) });
+  const project = await ProjectModel.findOne({ _id: id, createdBy: new mongoose.Types.ObjectId(userId) });
   if (!project) throw new NotFound("Project not found");
-  const tasksDeletion = await UserProjectModel.deleteMany({ project_id: id });
-  const userProjectsDeletion = await UserProjectModel.deleteMany({ project_id: id });
-  const Usertaskdeletion = await UserTaskModel.deleteMany({ project_id: id });
+
+  // 1. Get all tasks for this project
+  const projectTasks = await TaskModel.find({ projectId: id });
+  const taskIds = projectTasks.map(t => t._id);
+
+  // 2. Delete all UserTasks linked to those tasks
+  if (taskIds.length > 0) {
+    await UserTaskModel.deleteMany({ task_id: { $in: taskIds } });
+  }
+
+  // 3. Delete all Tasks for this project
+  await TaskModel.deleteMany({ projectId: id });
+
+  // 4. Delete all UserProjects for this project
+  await UserProjectModel.deleteMany({ project_id: id });
+
+  // 5. Delete the Project
+  await ProjectModel.findByIdAndDelete(id);
+
   return SuccessResponse(res, {
-    message: "Project deleted successfully",
+    message: "Project and all related data deleted successfully",
   });
 };

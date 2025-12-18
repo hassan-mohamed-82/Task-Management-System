@@ -12,6 +12,7 @@ const subscriptions_1 = require("../../models/schema/subscriptions");
 const User_Project_1 = require("../../models/schema/User_Project");
 const mongoose_1 = __importDefault(require("mongoose"));
 const User_Task_1 = require("../../models/schema/User_Task");
+const Tasks_1 = require("../../models/schema/Tasks");
 const createProject = async (req, res) => {
     const userId = req.user?._id;
     if (!userId)
@@ -118,14 +119,24 @@ const deleteProjectById = async (req, res) => {
         throw new BadRequest_1.BadRequest("Project ID is required");
     if (!mongoose_1.default.Types.ObjectId.isValid(id))
         throw new BadRequest_1.BadRequest("Invalid Project ID");
-    const project = await project_1.ProjectModel.findOneAndDelete({ _id: id, createdBy: new mongoose_1.default.Types.ObjectId(userId) });
+    const project = await project_1.ProjectModel.findOne({ _id: id, createdBy: new mongoose_1.default.Types.ObjectId(userId) });
     if (!project)
         throw new NotFound_1.NotFound("Project not found");
-    const tasksDeletion = await User_Project_1.UserProjectModel.deleteMany({ project_id: id });
-    const userProjectsDeletion = await User_Project_1.UserProjectModel.deleteMany({ project_id: id });
-    const Usertaskdeletion = await User_Task_1.UserTaskModel.deleteMany({ project_id: id });
+    // 1. Get all tasks for this project
+    const projectTasks = await Tasks_1.TaskModel.find({ projectId: id });
+    const taskIds = projectTasks.map(t => t._id);
+    // 2. Delete all UserTasks linked to those tasks
+    if (taskIds.length > 0) {
+        await User_Task_1.UserTaskModel.deleteMany({ task_id: { $in: taskIds } });
+    }
+    // 3. Delete all Tasks for this project
+    await Tasks_1.TaskModel.deleteMany({ projectId: id });
+    // 4. Delete all UserProjects for this project
+    await User_Project_1.UserProjectModel.deleteMany({ project_id: id });
+    // 5. Delete the Project
+    await project_1.ProjectModel.findByIdAndDelete(id);
     return (0, response_1.SuccessResponse)(res, {
-        message: "Project deleted successfully",
+        message: "Project and all related data deleted successfully",
     });
 };
 exports.deleteProjectById = deleteProjectById;

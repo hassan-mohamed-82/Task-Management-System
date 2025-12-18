@@ -136,8 +136,8 @@ export const getAllTasks = async (req: Request, res: Response) => {
   // هات كل المشاريع اللي المستخدم موجود فيها
   const userProjects = await UserProjectModel.find({ user_id: user });
 
-  if (!userProjects.length)
-    throw new UnauthorizedError("You are not assigned to any project.");
+  // if (!userProjects.length)
+  //   throw new UnauthorizedError("You are not assigned to any project.");
 
   const projectIds = userProjects.map((p) => p.project_id);
 

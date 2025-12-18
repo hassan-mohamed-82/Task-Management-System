@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllUserTask = exports.removedUserFromTask = exports.updateUserTaskStatus = exports.updaterole = exports.addUserToTask = void 0;
 const Tasks_1 = require("../../models/schema/Tasks");
+const project_1 = require("../../models/schema/project");
 const User_Project_1 = require("../../models/schema/User_Project");
 const User_Task_1 = require("../../models/schema/User_Task");
 const BadRequest_1 = require("../../Errors/BadRequest");
@@ -128,9 +129,14 @@ const removedUserFromTask = async (req, res) => {
     const task = await Tasks_1.TaskModel.findOne({ _id: task_id, createdBy: adminId });
     if (!task)
         throw new NotFound_1.NotFound("You do not have access to this task");
-    // Check the user found is the admin or not 
-    // const user = await UserModel.findById(user_id);
-    // if (!user) throw new NotFound("User not found");
+    // Get the project to check if user is the creator
+    const project = await project_1.ProjectModel.findById(task.projectId);
+    if (!project)
+        throw new NotFound_1.NotFound("Project not found");
+    // Prevent removing the project creator
+    if (project.createdBy.toString() === user_id) {
+        throw new BadRequest_1.BadRequest("Cannot remove the project creator from the task");
+    }
     const deletedUserTask = await User_Task_1.UserTaskModel.findOneAndDelete({ task_id, user_id });
     if (!deletedUserTask)
         throw new NotFound_1.NotFound("This user is not assigned to this task");
