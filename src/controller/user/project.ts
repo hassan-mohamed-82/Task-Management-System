@@ -8,6 +8,7 @@ import { SuccessResponse } from "../../utils/response";
 import { UserProjectModel } from "../../models/schema/User_Project";
 import { User } from "../../models/schema/auth/User";
 import { UserTaskModel } from "../../models/schema/User_Task";
+import { TaskModel } from "../../models/schema/Tasks";
 import { sendEmail } from "../../utils/sendEmails";
 const toPublicPath = (p: string | null | undefined) => {
   if (!p) return null;
@@ -46,18 +47,24 @@ export const getProjectDetailsForUser = async (req: Request, res: Response) => {
     "name email photo role"
   );
 
-  // نجيب التاسكات المرتبطة باليوزر
-  let tasks = await UserTaskModel.find({ user_id })
+  // First, get all tasks for this project
+  const projectObjectId = new mongoose.Types.ObjectId(project_id);
+  const projectTasks = await TaskModel.find({ projectId: projectObjectId, is_active: true });
+  const taskIds = projectTasks.map(t => t._id);
+
+  // Then, get UserTask entries for the logged-in user that are linked to these tasks
+  let tasks = await UserTaskModel.find({
+    user_id,
+    task_id: { $in: taskIds }
+  })
     .populate({
       path: "task_id",
-      match: { projectId: project_id },
-      // نضمن إن file و recorde جايين
-      select: "name description status priority start_date end_date is_finished file recorde",
+      select: "name description status priority start_date end_date is_finished file recorde projectId",
     })
     .populate({
-      path: "User_taskId", // هنا بنجيب الـ sub tasks
+      path: "User_taskId",
       populate: {
-        path: "task_id", // بيانات الـ task لكل sub task
+        path: "task_id",
         select: "name description status priority start_date end_date is_finished file recorde",
       },
     })
@@ -66,6 +73,9 @@ export const getProjectDetailsForUser = async (req: Request, res: Response) => {
       select: "reason points",
     })
     .lean();
+
+  // Filter out tasks where task_id is null
+  tasks = tasks.filter((item: any) => item.task_id !== null);
 
   // نعدّل روابط file/recorde في الـ tasks والـ subTasks
   tasks = tasks.map((item: any) => {

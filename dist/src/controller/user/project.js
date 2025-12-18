@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getallProject = exports.getProjectDetailsForUser = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const project_1 = require("../../models/schema/project");
 const BadRequest_1 = require("../../Errors/BadRequest");
 const NotFound_1 = require("../../Errors/NotFound");
@@ -8,6 +12,7 @@ const unauthorizedError_1 = require("../../Errors/unauthorizedError");
 const response_1 = require("../../utils/response");
 const User_Project_1 = require("../../models/schema/User_Project");
 const User_Task_1 = require("../../models/schema/User_Task");
+const Tasks_1 = require("../../models/schema/Tasks");
 const toPublicPath = (p) => {
     if (!p)
         return null;
@@ -38,18 +43,23 @@ const getProjectDetailsForUser = async (req, res) => {
     if (!project)
         throw new NotFound_1.NotFound("Project not found");
     const members = await User_Project_1.UserProjectModel.find({ project_id }).populate("user_id", "name email photo role");
-    // نجيب التاسكات المرتبطة باليوزر
-    let tasks = await User_Task_1.UserTaskModel.find({ user_id })
-        .populate({
-        path: "task_id",
-        match: { projectId: project_id },
-        // نضمن إن file و recorde جايين
-        select: "name description status priority start_date end_date is_finished file recorde",
+    // First, get all tasks for this project
+    const projectObjectId = new mongoose_1.default.Types.ObjectId(project_id);
+    const projectTasks = await Tasks_1.TaskModel.find({ projectId: projectObjectId, is_active: true });
+    const taskIds = projectTasks.map(t => t._id);
+    // Then, get UserTask entries for the logged-in user that are linked to these tasks
+    let tasks = await User_Task_1.UserTaskModel.find({
+        user_id,
+        task_id: { $in: taskIds }
     })
         .populate({
-        path: "User_taskId", // هنا بنجيب الـ sub tasks
+        path: "task_id",
+        select: "name description status priority start_date end_date is_finished file recorde projectId",
+    })
+        .populate({
+        path: "User_taskId",
         populate: {
-            path: "task_id", // بيانات الـ task لكل sub task
+            path: "task_id",
             select: "name description status priority start_date end_date is_finished file recorde",
         },
     })
@@ -58,6 +68,8 @@ const getProjectDetailsForUser = async (req, res) => {
         select: "reason points",
     })
         .lean();
+    // Filter out tasks where task_id is null
+    tasks = tasks.filter((item) => item.task_id !== null);
     // نعدّل روابط file/recorde في الـ tasks والـ subTasks
     tasks = tasks.map((item) => {
         // task الرئيسي

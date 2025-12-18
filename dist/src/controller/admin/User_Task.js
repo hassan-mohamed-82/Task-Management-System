@@ -128,6 +128,9 @@ const removedUserFromTask = async (req, res) => {
     const task = await Tasks_1.TaskModel.findOne({ _id: task_id, createdBy: adminId });
     if (!task)
         throw new NotFound_1.NotFound("You do not have access to this task");
+    // Check the user found is the admin or not 
+    // const user = await UserModel.findById(user_id);
+    // if (!user) throw new NotFound("User not found");
     const deletedUserTask = await User_Task_1.UserTaskModel.findOneAndDelete({ task_id, user_id });
     if (!deletedUserTask)
         throw new NotFound_1.NotFound("This user is not assigned to this task");

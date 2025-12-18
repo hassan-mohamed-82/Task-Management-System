@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import mongoose, { Types } from "mongoose";
 import path from "path";
-import {  NotFound, UnauthorizedError } from "../../Errors";
+import { NotFound, UnauthorizedError } from "../../Errors";
 import { SuccessResponse } from "../../utils/response";
 import { BadRequest } from "../../Errors/BadRequest";
 import { ProjectModel } from "../../models/schema/project";
@@ -278,7 +278,7 @@ export const deleteTask = async (req: Request, res: Response) => {
 
   await TaskModel.findByIdAndDelete(id);
   await UserTaskModel.deleteMany({ task_id: id });
-  
+
   SuccessResponse(res, { message: "Task deleted successfully" });
 };
 
