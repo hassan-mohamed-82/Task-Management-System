@@ -267,7 +267,46 @@ export const getTaskDetailsForUser = async (req: Request, res: Response) => {
   const { taskId } = req.params;
   if (!taskId) throw new BadRequest("Task ID is required");
 
-  // جيب الـ Task الأول
+  // First, try to find as UserTask ID (to view a specific user's task)
+  let userTask = await UserTaskModel.findById(taskId)
+    .populate('user_id', 'name email')
+    .populate('task_id', 'name description status priority start_date end_date is_finished');
+
+  if (userTask) {
+    // Found as UserTask ID - check if current user has permission to view
+    const task = await TaskModel.findById(userTask.task_id);
+    if (!task) throw new NotFound("Task not found");
+
+    // Check if current user is in the project
+    const userProject = await UserProjectModel.findOne({
+      user_id: userId,
+      project_id: task.projectId
+    });
+    if (!userProject) throw new NotFound("User not found in this project");
+
+    // Check if current user is the owner of this UserTask OR is membercanapprove/teamlead/admin
+    const projectRole = String(userProject.role || "").toLowerCase();
+    const isOwnTask = userTask.user_id && (userTask.user_id as any)._id?.toString() === userId.toString();
+
+    if (!isOwnTask && !["membercanapprove", "teamlead", "admin"].includes(projectRole)) {
+      throw new UnauthorizedError("You don't have permission to view this task");
+    }
+
+    // For membercanapprove, verify they're assigned to the same parent Task
+    if (!isOwnTask && projectRole === "membercanapprove") {
+      const approverUserTask = await UserTaskModel.findOne({
+        task_id: task._id,
+        user_id: userId
+      });
+      if (!approverUserTask) {
+        throw new UnauthorizedError("You must be assigned to this task to view others' details");
+      }
+    }
+
+    return SuccessResponse(res, { message: "Task found successfully", data: userTask });
+  }
+
+  // Fallback: Try as Task ID (original behavior)
   const task = await TaskModel.findOne({ _id: taskId });
   if (!task) throw new NotFound("Task not found");
 
@@ -285,8 +324,8 @@ export const getTaskDetailsForUser = async (req: Request, res: Response) => {
     throw new UnauthorizedError("You are not allowed to access this project tasks");
   }
 
-  // جيب الـ UserTask - بدون شرط is_active لو مش متأكد إنه موجود
-  const userTask = await UserTaskModel.findOne({
+  // جيب الـ UserTask للمستخدم الحالي
+  userTask = await UserTaskModel.findOne({
     task_id: taskId,
     user_id: userId
   })
