@@ -26,6 +26,8 @@ const addUserToTask = async (req, res) => {
     const existingUserTask = await User_Task_1.UserTaskModel.findOne({ user_id, task_id });
     if (existingUserTask)
         throw new BadRequest_1.BadRequest("User already added to this task");
+    if (task.status === 'Approved')
+        throw new BadRequest_1.BadRequest("Task is approved and finished,There is no need to add user to this task");
     const newUserTask = await User_Task_1.UserTaskModel.create({
         user_id,
         task_id,
@@ -149,7 +151,14 @@ const getAllUserTask = async (req, res) => {
     if (!task)
         throw new NotFound_1.NotFound("Task not found in your workspace");
     const userTasks = await User_Task_1.UserTaskModel.find({ task_id: id, is_active: true })
-        .populate("user_id", "name email role");
+        .populate("user_id", "name email role")
+        .populate({
+        path: "User_taskId",
+        populate: {
+            path: "user_id",
+            select: "name email role"
+        }
+    });
     const usersWithUserTaskId = userTasks.map(ut => ({
         userTaskId: ut._id,
         user: ut.user_id,
@@ -157,7 +166,8 @@ const getAllUserTask = async (req, res) => {
         status: ut.status,
         is_active: ut.is_active,
         is_finished: ut.is_finished,
-        description: ut.description
+        description: ut.description,
+        dependsOn: ut.User_taskId
     }));
     return (0, response_1.SuccessResponse)(res, { message: "User tasks fetched successfully", users: usersWithUserTaskId });
 };
