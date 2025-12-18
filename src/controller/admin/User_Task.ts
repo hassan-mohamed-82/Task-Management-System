@@ -164,7 +164,14 @@ export const getAllUserTask = async (req: Request, res: Response) => {
   if (!task) throw new NotFound("Task not found in your workspace");
 
   const userTasks = await UserTaskModel.find({ task_id: id, is_active: true })
-    .populate("user_id", "name email role");
+    .populate("user_id", "name email role")
+    .populate({
+      path: "User_taskId",
+      populate: {
+        path: "user_id",
+        select: "name email role"
+      }
+    });
 
   const usersWithUserTaskId = userTasks.map(ut => ({
     userTaskId: ut._id,
@@ -173,7 +180,8 @@ export const getAllUserTask = async (req: Request, res: Response) => {
     status: ut.status,
     is_active: ut.is_active,
     is_finished: ut.is_finished,
-    description: ut.description
+    description: ut.description,
+    dependsOn: ut.User_taskId
   }));
 
   return SuccessResponse(res, { message: "User tasks fetched successfully", users: usersWithUserTaskId });
