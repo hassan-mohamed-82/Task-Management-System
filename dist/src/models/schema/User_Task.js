@@ -75,5 +75,13 @@ const UserTaskSchema = new mongoose_1.Schema({
     description: {
         type: String,
     },
+    start_date: {
+        type: Date,
+        default: null,
+    },
+    end_date: {
+        type: Date,
+        default: null,
+    },
 }, { timestamps: true });
 exports.UserTaskModel = mongoose_1.default.model("User_Task", UserTaskSchema);
