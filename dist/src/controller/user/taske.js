@@ -48,21 +48,34 @@ const getalltaskatprojectforuser = async (req, res) => {
     const task = await Tasks_1.TaskModel.findOne({ _id: taskId });
     if (!task)
         throw new NotFound_1.NotFound("Task not found");
-    const usertask = await User_Task_1.UserTaskModel.findOne({ task_id: taskId, user_id: userId });
-    if (!usertask)
-        throw new BadRequest_1.BadRequest("You are not allowed to access this project tasks");
+    // Check if user is part of the project
     const userProject = await User_Project_1.UserProjectModel.findOne({ user_id: userId, project_id: task.projectId });
     if (!userProject)
         throw new NotFound_1.NotFound("User not found in this project");
-    // السماح للأدوار المطلوبة فق
+    // Check allowed roles
     const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
     const projectRole = String(userProject.role || "").toLowerCase();
     if (!allowedRoles.includes(projectRole)) {
         throw new unauthorizedError_1.UnauthorizedError("You are not allowed to access this project tasks");
     }
-    const tasks = await User_Task_1.UserTaskModel.find({ task_id: taskId, user_id: userId, is_active: true, })
-        .populate('user_id', 'name email')
-        .populate('task_id', 'name description status priority start_date end_date is_finished ');
+    // Check if user is teamlead or admin (can view all tasks in project)
+    const isTeamLeadOrAdmin = projectRole === "teamlead" || projectRole === "admin";
+    // For regular members, check if they are assigned to this task
+    if (!isTeamLeadOrAdmin) {
+        const usertask = await User_Task_1.UserTaskModel.findOne({ task_id: taskId, user_id: userId });
+        if (!usertask)
+            throw new BadRequest_1.BadRequest("You are not allowed to access this project tasks");
+    }
+    // Build query based on role:
+    // - Team leads and admins can see all user tasks for this task
+    // - Regular members only see their own assignment
+    const taskQuery = { task_id: taskId, is_active: true };
+    if (!isTeamLeadOrAdmin) {
+        taskQuery.user_id = userId;
+    }
+    const tasks = await User_Task_1.UserTaskModel.find(taskQuery)
+        .populate('user_id', 'name email photo')
+        .populate('task_id', 'name description status priority start_date end_date is_finished');
     (0, response_1.SuccessResponse)(res, { message: "Tasks found successfully", data: tasks });
 };
 exports.getalltaskatprojectforuser = getalltaskatprojectforuser;

@@ -47,20 +47,39 @@ export const getalltaskatprojectforuser = async (req: Request, res: Response) =>
   if (!taskId) throw new BadRequest("Task ID is required");
   const task = await TaskModel.findOne({ _id: taskId });
   if (!task) throw new NotFound("Task not found");
-  const usertask = await UserTaskModel.findOne({ task_id: taskId, user_id: userId });
-  if (!usertask) throw new BadRequest("You are not allowed to access this project tasks");
+
+  // Check if user is part of the project
   const userProject = await UserProjectModel.findOne({ user_id: userId, project_id: task.projectId });
   if (!userProject) throw new NotFound("User not found in this project");
-  // السماح للأدوار المطلوبة فق
+
+  // Check allowed roles
   const allowedRoles = ["teamlead", "member", "membercanapprove", "admin"];
   const projectRole = String(userProject.role || "").toLowerCase();
   if (!allowedRoles.includes(projectRole)) {
     throw new UnauthorizedError("You are not allowed to access this project tasks");
   }
 
-  const tasks = await UserTaskModel.find({ task_id: taskId, user_id: userId, is_active: true, })
-    .populate('user_id', 'name email')
-    .populate('task_id', 'name description status priority start_date end_date is_finished ');
+  // Check if user is teamlead or admin (can view all tasks in project)
+  const isTeamLeadOrAdmin = projectRole === "teamlead" || projectRole === "admin";
+
+  // For regular members, check if they are assigned to this task
+  if (!isTeamLeadOrAdmin) {
+    const usertask = await UserTaskModel.findOne({ task_id: taskId, user_id: userId });
+    if (!usertask) throw new BadRequest("You are not allowed to access this project tasks");
+  }
+
+  // Build query based on role:
+  // - Team leads and admins can see all user tasks for this task
+  // - Regular members only see their own assignment
+  const taskQuery: any = { task_id: taskId, is_active: true };
+  if (!isTeamLeadOrAdmin) {
+    taskQuery.user_id = userId;
+  }
+
+  const tasks = await UserTaskModel.find(taskQuery)
+    .populate('user_id', 'name email photo')
+    .populate('task_id', 'name description status priority start_date end_date is_finished');
+
   SuccessResponse(res, { message: "Tasks found successfully", data: tasks });
 };
 
