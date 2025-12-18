@@ -47,10 +47,24 @@ const getProjectDetailsForUser = async (req, res) => {
     const projectObjectId = new mongoose_1.default.Types.ObjectId(project_id);
     const projectTasks = await Tasks_1.TaskModel.find({ projectId: projectObjectId, is_active: true });
     const taskIds = projectTasks.map(t => t._id);
-    // Then, get UserTask entries for the logged-in user that are linked to these tasks
-    let tasks = await User_Task_1.UserTaskModel.find({
-        user_id,
+    // Check if the user is a teamlead or admin in this project
+    const userRole = (isMember.role || "").toLowerCase();
+    const isTeamLeadOrAdmin = userRole === "teamlead" || userRole === "admin";
+    // Build query based on user's role:
+    // - Team leads and admins can see all tasks in the project
+    // - Regular members only see their own assigned tasks
+    const taskQuery = {
         task_id: { $in: taskIds }
+    };
+    // Only filter by user_id if NOT a team lead or admin
+    if (!isTeamLeadOrAdmin) {
+        taskQuery.user_id = user_id;
+    }
+    // Get UserTask entries based on role
+    let tasks = await User_Task_1.UserTaskModel.find(taskQuery)
+        .populate({
+        path: "user_id",
+        select: "name email photo",
     })
         .populate({
         path: "task_id",
@@ -58,10 +72,16 @@ const getProjectDetailsForUser = async (req, res) => {
     })
         .populate({
         path: "User_taskId",
-        populate: {
-            path: "task_id",
-            select: "name description status priority start_date end_date is_finished file recorde",
-        },
+        populate: [
+            {
+                path: "task_id",
+                select: "name description status priority start_date end_date is_finished file recorde",
+            },
+            {
+                path: "user_id",
+                select: "name email photo",
+            }
+        ],
     })
         .populate({
         path: "rejection_reasonId",
