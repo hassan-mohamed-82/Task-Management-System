@@ -120,15 +120,19 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
     if (currentStatus === "pending" && status === "in_progress") {
       userTask.status = "in_progress";
       userTask.is_finished = false;
+      userTask.start_date = new Date();
     } else if (currentStatus === "in_progress" && status === "done") {
       userTask.status = "done";
       userTask.is_finished = true;
+      userTask.end_date = new Date();
     } else if (currentStatus === "pending_edit" && status === "in_progress_edit") {
       userTask.status = "in_progress_edit";
       userTask.is_finished = false;
+      userTask.start_date = new Date();
     } else if (currentStatus === "in_progress_edit" && status === "done") {
       userTask.status = "done";
       userTask.is_finished = true;
+      userTask.end_date = new Date();
     } else {
       throw new BadRequest("Member cannot perform this status change");
     }
@@ -139,15 +143,19 @@ export const updateUserTaskStatus = async (req: Request, res: Response) => {
     if (currentStatus === "pending" && status === "in_progress") {
       userTask.status = "in_progress";
       userTask.is_finished = false;
+      userTask.start_date = new Date();
     } else if (currentStatus === "in_progress" && status === "done") {
       userTask.status = "done";
       userTask.is_finished = true;
+      userTask.end_date = new Date();
     } else if (currentStatus === "pending_edit" && status === "in_progress_edit") {
       userTask.status = "in_progress_edit";
       userTask.is_finished = false;
+      userTask.start_date = new Date();
     } else if (currentStatus === "in_progress_edit" && status === "done") {
       userTask.status = "done";
       userTask.is_finished = true;
+      userTask.end_date = new Date();
     } else if (
       currentStatus === "done" &&
       status === "Approved from Member_can_approve"

@@ -181,7 +181,9 @@ export const getAllUserTask = async (req: Request, res: Response) => {
     is_active: ut.is_active,
     is_finished: ut.is_finished,
     description: ut.description,
-    dependsOn: ut.User_taskId
+    dependsOn: ut.User_taskId,
+    start_date: ut.start_date,
+    end_date: ut.end_date,
   }));
 
   return SuccessResponse(res, { message: "User tasks fetched successfully", users: usersWithUserTaskId });

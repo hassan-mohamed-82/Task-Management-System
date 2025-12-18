@@ -12,6 +12,8 @@ export interface IUserTask extends Document {
   is_active?: boolean;
   role: 'member' | 'membercanapprove';
   description?: string;
+  start_date?: Date;
+  end_date?: Date;
 }
 
 const UserTaskSchema = new Schema<IUserTask>(
@@ -54,6 +56,14 @@ const UserTaskSchema = new Schema<IUserTask>(
     },
     description: {
       type: String,
+    },
+    start_date: {
+      type: Date,
+      default: null,
+    },
+    end_date: {
+      type: Date,
+      default: null,
     },
 
   },
