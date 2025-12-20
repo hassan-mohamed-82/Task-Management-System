@@ -1,0 +1,73 @@
+GET /api/user/tasks/approver/:taskId
+
+
+{
+  "message": "Task details for approver fetched successfully",
+  "data": {
+    // Project Information (header)
+    "project": {
+      "_id": "...",
+      "name": "Project Name",
+      "description": "..."
+    },
+
+    // Task Information section
+    "taskInfo": {
+      "_id": "...",
+      "name": "Task Name",
+      "description": "...",
+      "priority": "low|medium|high",
+      "status": "Pending|in_progress|waiting_for_approve|Approved|rejected",
+      "start_date": "...",
+      "end_date": "...",
+      "file": "http://...url to file",
+      "record": "...",
+      "department": { ... },
+      "is_finished": false,
+      "createdAt": "..."
+    },
+
+    // Current User (the approver) section
+    "currentUser": {
+      "_id": "...",
+      "name": "...",
+      "email": "...",
+      "role": "membercanapprove",
+      "status": "pending|in_progress|done|...",
+      "is_finished": false,
+      "userTaskId": "..."
+    },
+
+    // Team Members section
+    "teamMembers": [
+      {
+        "userTaskId": "...",
+        "user": {
+          "_id": "...",
+          "name": "...",
+          "email": "...",
+          "photo": "..."
+        },
+        "role": "member|membercanapprove",
+        "status": "...",
+        "is_finished": false,
+        "description": "...",
+        "start_date": "...",
+        "end_date": "...",
+        "rejection_reason": { ... } // if applicable
+      }
+    ],
+
+    // Summary & Statistics section
+    "summary": {
+      "totalMembers": 5,
+      "finishedCount": 2,
+      "pendingCount": 1,
+      "inProgressCount": 1,
+      "doneCount": 1,
+      "approvedCount": 0,
+      "rejectedCount": 0,
+      "completionPercentage": 40
+    }
+  }
+}

@@ -5,6 +5,7 @@ import {
   getTaskDetailsForUser,
   reviewUserTaskByApprover,
   selection,
+  getTaskDetailsForApprover,
 } from "../../controller/user/taske";
 import { catchAsync } from "../../utils/catchAsync";
 import { checkProjectOrTaskRole } from "../../middlewares/authorized";
@@ -19,6 +20,11 @@ route.get("/selection",
 // 2) routes الخاصة بالمراجعة / تفاصيل التاسك
 route.put("/review/:taskId",
   catchAsync(reviewUserTaskByApprover)
+);
+
+// Route exclusive for "membercanapprove" role - returns comprehensive task details
+route.get("/approver/:taskId",
+  catchAsync(getTaskDetailsForApprover)
 );
 
 route.get("/task/:taskId",

@@ -508,6 +508,175 @@ export const reviewUserTaskByApprover = async (req: Request, res: Response) => {
 
 
 
+/**
+ * GET route for "Member Can Approve" role
+ * Returns comprehensive task details including:
+ * - Task Information (name, description, priority, status, end_date, file)
+ * - Project Information
+ * - Current User Info (role, status, is_finished)
+ * - Team Members list with their statuses
+ * - Summary & Statistics
+ */
+export const getTaskDetailsForApprover = async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  if (!userId) throw new BadRequest("User ID is required");
+
+  const { taskId } = req.params;
+  if (!taskId) throw new BadRequest("Task ID is required");
+
+  if (!mongoose.Types.ObjectId.isValid(taskId)) {
+    throw new BadRequest("Invalid Task ID");
+  }
+
+  // First check if this is a UserTask ID
+  const userTaskById = await UserTaskModel.findById(taskId);
+
+  let mainTaskId: mongoose.Types.ObjectId;
+
+  if (userTaskById) {
+    // If taskId is a UserTask ID, get the actual Task ID
+    mainTaskId = userTaskById.task_id;
+  } else {
+    // Assume it's a Task ID directly
+    mainTaskId = new mongoose.Types.ObjectId(taskId);
+  }
+
+  // Get the main task
+  const task = await TaskModel.findById(mainTaskId)
+    .populate('projectId', 'name description')
+    .populate('Depatment_id', 'name');
+
+  if (!task) throw new NotFound("Task not found");
+
+  // Check if the user is in the project
+  const userProject = await UserProjectModel.findOne({
+    user_id: userId,
+    project_id: task.projectId
+  });
+
+  if (!userProject) throw new NotFound("User not found in this project");
+
+  // Verify the user has "membercanapprove" role in the project or on the task
+  const projectRole = String(userProject.role || "").toLowerCase();
+
+  // Check if user is assigned to this task as membercanapprove
+  const currentUserTask = await UserTaskModel.findOne({
+    task_id: mainTaskId,
+    user_id: userId
+  }).populate('rejection_reasonId', 'name points description');
+
+  if (!currentUserTask) {
+    throw new UnauthorizedError("You are not assigned to this task");
+  }
+
+  const userTaskRole = String(currentUserTask.role || "").toLowerCase();
+
+  // Only membercanapprove can access this endpoint
+  if (userTaskRole !== "membercanapprove" && projectRole !== "membercanapprove") {
+    throw new UnauthorizedError("This page is exclusive for members who can approve");
+  }
+
+  // Get all team members assigned to this task
+  const teamMembers = await UserTaskModel.find({
+    task_id: mainTaskId,
+    is_active: true
+  })
+    .populate('user_id', 'name email photo')
+    .populate('rejection_reasonId', 'name points description');
+
+  // Get the current user's details
+  const currentUser = await User.findById(userId).select('name email photo');
+
+  // Calculate summary statistics
+  const totalMembers = teamMembers.length;
+  const finishedCount = teamMembers.filter(m => m.is_finished === true).length;
+  const pendingCount = teamMembers.filter(m => m.status === 'pending' || m.status === 'pending_edit').length;
+  const inProgressCount = teamMembers.filter(m => m.status === 'in_progress' || m.status === 'in_progress_edit').length;
+  const doneCount = teamMembers.filter(m => m.status === 'done').length;
+  const approvedCount = teamMembers.filter(m => m.status === 'Approved from Member_can_approve').length;
+  const rejectedCount = teamMembers.filter(m => m.status === 'rejected from Member_can_rejected').length;
+
+  // Build the response
+  const response = {
+    // Project Information
+    project: {
+      _id: (task.projectId as any)?._id || task.projectId,
+      name: (task.projectId as any)?.name || "Unknown Project",
+      description: (task.projectId as any)?.description || null
+    },
+
+    // Task Information
+    taskInfo: {
+      _id: task._id,
+      name: task.name,
+      description: task.description || null,
+      priority: task.priority || null,
+      status: task.status,
+      start_date: task.start_date || null,
+      end_date: task.end_date || null,
+      file: task.file ? buildUrl(task.file, req) : null,
+      record: task.recorde ? buildUrl(task.recorde, req) : null,
+      department: task.Depatment_id ? (task.Depatment_id as any) : null,
+      is_finished: task.status === 'Approved',
+      createdAt: task.createdAt
+    },
+
+    // Current User (the approver) Info
+    currentUser: {
+      _id: currentUser?._id || userId,
+      name: currentUser?.name || null,
+      email: currentUser?.email || null,
+      role: currentUserTask.role,
+      status: currentUserTask.status,
+      is_finished: currentUserTask.is_finished || false,
+      userTaskId: currentUserTask._id
+    },
+
+    // Team Members List
+    teamMembers: teamMembers.map(member => ({
+      userTaskId: member._id,
+      user: {
+        _id: (member.user_id as any)?._id,
+        name: (member.user_id as any)?.name || null,
+        email: (member.user_id as any)?.email || null,
+        photo: (member.user_id as any)?.photo ? buildUrl((member.user_id as any).photo, req) : null
+      },
+      role: member.role,
+      status: member.status,
+      is_finished: member.is_finished || false,
+      description: member.description || null,
+      start_date: member.start_date || null,
+      end_date: member.end_date || null,
+      rejection_reason: member.rejection_reasonId ? {
+        _id: (member.rejection_reasonId as any)?._id,
+        name: (member.rejection_reasonId as any)?.name,
+        points: (member.rejection_reasonId as any)?.points,
+        description: (member.rejection_reasonId as any)?.description
+      } : null
+    })),
+
+    // Summary & Statistics
+    summary: {
+      totalMembers,
+      finishedCount,
+      pendingCount,
+      inProgressCount,
+      doneCount,
+      approvedCount,
+      rejectedCount,
+      completionPercentage: totalMembers > 0
+        ? Math.round((finishedCount / totalMembers) * 100)
+        : 0
+    }
+  };
+
+  SuccessResponse(res, {
+    message: "Task details for approver fetched successfully",
+    data: response
+  });
+};
+
+
 export const selection = async (req: Request, res: Response) => {
 
   const rejected_reason = await RejectedReson.find();
