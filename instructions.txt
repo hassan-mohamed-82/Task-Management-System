@@ -71,3 +71,11 @@ GET /api/user/tasks/approver/:taskId
     }
   }
 }
+
+
+
+a/user/tasks/approver/:taskId
+
+
+here in the get all tasks , the tasks of the other admins , i can see them , i want to see the tasks only of my project
+
