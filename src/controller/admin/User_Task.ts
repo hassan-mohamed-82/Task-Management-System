@@ -63,7 +63,9 @@ export const updaterole = async (req: Request, res: Response) => {
   const userTask = await UserTaskModel.findById(id).populate('task_id');
   if (!userTask) throw new NotFound("UserTask not found");
 
-  const task = await TaskModel.findOne({ _id: userTask.task_id, createdBy: adminId });
+  // After populate, task_id is the full document, so extract _id properly
+  const taskId = (userTask.task_id as any)?._id || userTask.task_id;
+  const task = await TaskModel.findOne({ _id: taskId, createdBy: adminId });
   if (!task) throw new NotFound("You do not have access to this task");
 
   if (role) userTask.role = role;
