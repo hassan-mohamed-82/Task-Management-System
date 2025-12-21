@@ -133,13 +133,10 @@ export const getAllTasks = async (req: Request, res: Response) => {
   const user = req.user?._id;
   if (!user) throw new UnauthorizedError("Access denied.");
 
-  // هات كل المشاريع اللي المستخدم موجود فيها
-  const userProjects = await UserProjectModel.find({ user_id: user });
+  // هات كل المشاريع اللي الـ Admin أنشأها (createdBy)
+  const adminProjects = await ProjectModel.find({ createdBy: user });
 
-  // if (!userProjects.length)
-  //   throw new UnauthorizedError("You are not assigned to any project.");
-
-  const projectIds = userProjects.map((p) => p.project_id);
+  const projectIds = adminProjects.map((p) => p._id);
 
   // هات التاسكات الخاصة بالمشاريع دي فقط
   let tasks = await TaskModel.find({ projectId: { $in: projectIds } })
