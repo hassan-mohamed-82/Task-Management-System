@@ -382,25 +382,24 @@ const reviewUserTaskByApprover = async (req, res) => {
         if (!rejectionReason) {
             throw new NotFound_1.NotFound("Rejection reason not found");
         }
-        // ⬇️⬇️⬇️ نجيب كل الـ UserTasks ونزود النقاط لكل واحد ⬇️⬇️⬇️
-        const allUserTasks = await User_Task_1.UserTaskModel.find({ task_id: userTask.task_id });
-        for (const ut of allUserTasks) {
-            // سجل سبب الرفض لكل يوزر
-            await User_Rejection_1.UserRejectedReason.create({
-                userId: ut.user_id,
-                reasonId: rejection_reasonId,
-                taskId: userTask.task_id,
-            });
-            // زود نقاط الرفض لكل يوزر
-            const pointsUser = await User_1.User.findById(ut.user_id);
-            if (pointsUser) {
-                pointsUser.totalRejectedPoints =
-                    (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
-                await pointsUser.save();
-            }
+        // ⬇️⬇️⬇️ سجل سبب الرفض لهذا الـ User فقط ⬇️⬇️⬇️
+        await User_Rejection_1.UserRejectedReason.create({
+            userId: userTask.user_id,
+            reasonId: rejection_reasonId,
+            taskId: userTask.task_id,
+        });
+        // زود نقاط الرفض لهذا الـ User فقط
+        const pointsUser = await User_1.User.findById(userTask.user_id);
+        if (pointsUser) {
+            pointsUser.totalRejectedPoints =
+                (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
+            await pointsUser.save();
         }
-        // كل الـ UserTasks → pending_edit
-        await User_Task_1.UserTaskModel.updateMany({ task_id: userTask.task_id }, { status: "pending_edit", is_finished: false });
+        // هذا الـ UserTask فقط → pending_edit
+        userTask.status = "pending_edit";
+        userTask.is_finished = false;
+        userTask.rejection_reasonId = rejection_reasonId;
+        await userTask.save();
         // ⬇️⬇️⬇️ الـ Task الكبيرة ترجع Pending ⬇️⬇️⬇️
         const task = await Tasks_1.TaskModel.findById(userTask.task_id);
         if (task) {
