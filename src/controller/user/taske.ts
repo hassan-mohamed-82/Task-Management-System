@@ -440,31 +440,26 @@ export const reviewUserTaskByApprover = async (req: Request, res: Response) => {
       throw new NotFound("Rejection reason not found");
     }
 
-    // ⬇️⬇️⬇️ نجيب كل الـ UserTasks ونزود النقاط لكل واحد ⬇️⬇️⬇️
-    const allUserTasks = await UserTaskModel.find({ task_id: userTask.task_id });
+    // ⬇️⬇️⬇️ سجل سبب الرفض لهذا الـ User فقط ⬇️⬇️⬇️
+    await UserRejectedReason.create({
+      userId: userTask.user_id,
+      reasonId: rejection_reasonId,
+      taskId: userTask.task_id,
+    });
 
-    for (const ut of allUserTasks) {
-      // سجل سبب الرفض لكل يوزر
-      await UserRejectedReason.create({
-        userId: ut.user_id,
-        reasonId: rejection_reasonId,
-        taskId: userTask.task_id,
-      });
-
-      // زود نقاط الرفض لكل يوزر
-      const pointsUser = await User.findById(ut.user_id);
-      if (pointsUser) {
-        pointsUser.totalRejectedPoints =
-          (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
-        await pointsUser.save();
-      }
+    // زود نقاط الرفض لهذا الـ User فقط
+    const pointsUser = await User.findById(userTask.user_id);
+    if (pointsUser) {
+      pointsUser.totalRejectedPoints =
+        (pointsUser.totalRejectedPoints || 0) + (rejectionReason.points || 0);
+      await pointsUser.save();
     }
 
-    // كل الـ UserTasks → pending_edit
-    await UserTaskModel.updateMany(
-      { task_id: userTask.task_id },
-      { status: "pending_edit", is_finished: false }
-    );
+    // هذا الـ UserTask فقط → pending_edit
+    userTask.status = "pending_edit";
+    userTask.is_finished = false;
+    userTask.rejection_reasonId = rejection_reasonId;
+    await userTask.save();
 
     // ⬇️⬇️⬇️ الـ Task الكبيرة ترجع Pending ⬇️⬇️⬇️
     const task = await TaskModel.findById(userTask.task_id);
