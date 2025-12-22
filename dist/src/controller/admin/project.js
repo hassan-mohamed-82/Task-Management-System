@@ -22,12 +22,21 @@ const createProject = async (req, res) => {
         throw new BadRequest_1.BadRequest("Project name is required");
     // ✅ تحويل userId لـ ObjectId للتأكد من المطابقة
     const objectUserId = new mongoose_1.default.Types.ObjectId(userId);
-    // 1️⃣ جلب الاشتراك
-    const subscription = await subscriptions_1.SubscriptionModel.findOne({ userId: objectUserId }).populate("planId");
-    if (!subscription)
-        throw new BadRequest_1.BadRequest("You do not have an active subscription");
-    if (subscription.status !== "active")
-        throw new BadRequest_1.BadRequest("Your subscription is not active");
+    // 1️⃣ جلب الاشتراك الأحدث والنشط
+    const subscription = await subscriptions_1.SubscriptionModel.findOne({
+        userId: objectUserId,
+        status: "active"
+    })
+        .sort({ createdAt: -1 })
+        .populate("planId");
+    if (!subscription) {
+        // Check if user has any subscription at all
+        const anySubscription = await subscriptions_1.SubscriptionModel.findOne({ userId: objectUserId });
+        if (!anySubscription) {
+            throw new BadRequest_1.BadRequest("You do not have any subscription");
+        }
+        throw new BadRequest_1.BadRequest("Your subscription is not active or has expired");
+    }
     const now = new Date();
     if (subscription.endDate < now) {
         subscription.status = "expired";

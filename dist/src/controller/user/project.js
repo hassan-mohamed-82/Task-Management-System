@@ -111,6 +111,7 @@ const getProjectDetailsForUser = async (req, res) => {
     });
     (0, response_1.SuccessResponse)(res, {
         message: "Project details retrieved",
+        userRoleinProject: userRole,
         project,
         members,
         tasks,

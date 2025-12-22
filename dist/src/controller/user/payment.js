@@ -29,6 +29,9 @@ const createPayment = async (req, res) => {
         throw new BadRequest_1.BadRequest("Invalid plan ID");
     if (!mongoose_1.default.Types.ObjectId.isValid(paymentmethod_id))
         throw new BadRequest_1.BadRequest("Invalid payment method ID");
+    const exist_payment_method = await payment_methods_1.PaymentMethodModel.findById(paymentmethod_id);
+    if (!exist_payment_method)
+        throw new NotFound_1.NotFound("Payment method not found");
     const plan = await plans_1.PlanModel.findById(plan_id);
     if (!plan)
         throw new NotFound_1.NotFound("Plan not found");

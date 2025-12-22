@@ -124,6 +124,7 @@ export const getProjectDetailsForUser = async (req: Request, res: Response) => {
 
   SuccessResponse(res, {
     message: "Project details retrieved",
+    userRoleinProject: userRole,
     project,
     members,
     tasks,

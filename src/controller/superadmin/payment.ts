@@ -136,13 +136,15 @@ export const updatePayment = async (req: Request, res: Response) => {
   } else if (userPlanId.toString() === plan._id.toString()) {
     const subscription = await SubscriptionModel.findOne({
       userId: user._id,
-      planId: plan._id,
-      status: "active",
+      planId: plan._id
     }).sort({ createdAt: -1 });
 
     if (!subscription) throw new NotFound("Active subscription not found");
-
+    if (subscription.status === "expired") {
+      subscription.status = "active";
+    }
     subscription.endDate.setMonth(subscription.endDate.getMonth() + monthsToAdd);
+
     await subscription.save();
   } else {
     await SubscriptionModel.updateMany(

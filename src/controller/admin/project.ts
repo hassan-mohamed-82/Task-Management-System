@@ -19,10 +19,22 @@ export const createProject = async (req: Request, res: Response) => {
   // ✅ تحويل userId لـ ObjectId للتأكد من المطابقة
   const objectUserId = new mongoose.Types.ObjectId(userId);
 
-  // 1️⃣ جلب الاشتراك
-  const subscription = await SubscriptionModel.findOne({ userId: objectUserId }).populate("planId");
-  if (!subscription) throw new BadRequest("You do not have an active subscription");
-  if (subscription.status !== "active") throw new BadRequest("Your subscription is not active");
+  // 1️⃣ جلب الاشتراك الأحدث والنشط
+  const subscription = await SubscriptionModel.findOne({
+    userId: objectUserId,
+    status: "active"
+  })
+    .sort({ createdAt: -1 })
+    .populate("planId");
+
+  if (!subscription) {
+    // Check if user has any subscription at all
+    const anySubscription = await SubscriptionModel.findOne({ userId: objectUserId });
+    if (!anySubscription) {
+      throw new BadRequest("You do not have any subscription");
+    }
+    throw new BadRequest("Your subscription is not active or has expired");
+  }
 
   const now = new Date();
   if (subscription.endDate < now) {

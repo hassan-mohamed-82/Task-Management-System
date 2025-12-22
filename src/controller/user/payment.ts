@@ -26,6 +26,9 @@ export const createPayment = async (req: Request, res: Response) => {
   if (!mongoose.Types.ObjectId.isValid(plan_id)) throw new BadRequest("Invalid plan ID");
   if (!mongoose.Types.ObjectId.isValid(paymentmethod_id)) throw new BadRequest("Invalid payment method ID");
 
+  const exist_payment_method = await PaymentMethodModel.findById(paymentmethod_id);
+  if (!exist_payment_method) throw new NotFound("Payment method not found");
+
   const plan = await PlanModel.findById(plan_id);
   if (!plan) throw new NotFound("Plan not found");
 
@@ -95,7 +98,7 @@ export const getAllPayments = async (req: Request, res: Response) => {
 
   const payments = await PaymentModel.find({ userId: req.user.id })
     .populate("paymentmethod_id")
-    .populate("plan_id");    
+    .populate("plan_id");
 
   const pending = payments.filter(p => p.status === "pending");
   const history = payments.filter(p => ["approved", "rejected"].includes(p.status));
@@ -128,7 +131,7 @@ export const getPaymentById = async (req: Request, res: Response) => {
 
 
 export const selectforpayment = async (req: Request, res: Response) => {
-  const plan=await PlanModel.find();
-  const paymentmethod=await PaymentMethodModel.find();
-  SuccessResponse(res, { message: "Payment fetched successfully", plan,paymentmethod });
+  const plan = await PlanModel.find();
+  const paymentmethod = await PaymentMethodModel.find();
+  SuccessResponse(res, { message: "Payment fetched successfully", plan, paymentmethod });
 }
