@@ -24,8 +24,26 @@ export const startTaskScheduler = () => {
         }
       );
 
+      // ❌ تعطيل الـ Tasks المنتهية
+      const expiredTasks = await TaskModel.updateMany(
+        {
+          end_date: { $lt: today },
+          is_active: true,
+        },
+        {
+          $set: {
+            is_active: false,
+            status: "null",
+          },
+        }
+      );
+
       if (activatedTasks.modifiedCount > 0) {
         console.log(`✅ [${new Date().toISOString()}] Activated ${activatedTasks.modifiedCount} tasks`);
+      }
+
+      if (expiredTasks.modifiedCount > 0) {
+        console.log(`🚫 [${new Date().toISOString()}] Deactivated ${expiredTasks.modifiedCount} expired tasks`);
       }
 
     } catch (error) {

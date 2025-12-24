@@ -109,6 +109,17 @@ const createTask = async (req, res) => {
         }
         // لو في المستقبل → يفضل inactive وينتظر الـ Cron
     }
+    // ✅ لو تاريخ الانتهاء فات، يبقى Disactive
+    if (endDateObj) {
+        const endDay = new Date(endDateObj);
+        // endDay.setHours(0, 0, 0, 0); // Not strictly necessary if comparing to today (which is set to 00:00:00) but consistent if date-only.
+        // Actually endDateObj usually comes from new Date(string), which defaults to 00:00 UTC or Local depending on string.
+        // Let's assume day comparison.
+        if (endDay < today) {
+            shouldBeActive = false;
+            initialStatus = "null";
+        }
+    }
     const files = req.files;
     const filePath = files?.file?.[0]?.path || null;
     const recordPath = files?.recorde?.[0]?.path || null;
