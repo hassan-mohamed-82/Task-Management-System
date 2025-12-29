@@ -4,9 +4,9 @@ import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { ProjectModel } from "../../models/schema/project";
 import { SubscriptionModel } from "../../models/schema/subscriptions";
-import { UserProjectModel } from "../../models/schema/User_Project";
+import { UserProjectModel } from "../../models/schema/User_in_Project";
 import mongoose from "mongoose";
-import { UserTaskModel } from "../../models/schema/User_Task";
+import { UserTaskModel } from "../../models/schema/User_in_Task";
 import { TaskModel } from "../../models/schema/Tasks";
 
 export const createProject = async (req: Request, res: Response) => {

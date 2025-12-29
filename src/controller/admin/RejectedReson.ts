@@ -1,4 +1,4 @@
-import { RejectedReson } from "../../models/schema/RejectdReson";
+import { RejectedReson } from "../../models/schema/RejectedReason";
 import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { UnauthorizedError } from "../../Errors/unauthorizedError";
@@ -20,9 +20,9 @@ export const addRejectedReson = async (req: any, res: any) => {
     createdBy: user
   });
 
-  SuccessResponse(res, { 
+  SuccessResponse(res, {
     message: "Rejected Reason added successfully",
-    data: newRejectedReson 
+    data: newRejectedReson
   });
 };
 
@@ -35,9 +35,9 @@ export const getRejectedResons = async (req: any, res: any) => {
 
   const reasons = await RejectedReson.find({ createdBy: user });
 
-  SuccessResponse(res, { 
+  SuccessResponse(res, {
     message: "Rejected Reasons fetched successfully",
-    data: reasons 
+    data: reasons
   });
 };
 
@@ -57,9 +57,9 @@ export const getRejectedResonById = async (req: any, res: any) => {
 
   if (!reason) throw new NotFound("Rejected Reason not found");
 
-  SuccessResponse(res, { 
+  SuccessResponse(res, {
     message: "Rejected Reason fetched successfully",
-    data: reason 
+    data: reason
   });
 };
 
@@ -79,9 +79,9 @@ export const deleteRejectedResonById = async (req: any, res: any) => {
 
   if (!deleted) throw new NotFound("Rejected Reason not found");
 
-  SuccessResponse(res, { 
+  SuccessResponse(res, {
     message: "Rejected Reason deleted successfully",
-    data: deleted 
+    data: deleted
   });
 };
 
@@ -103,8 +103,8 @@ export const updateRejectedReson = async (req: any, res: any) => {
 
   if (!updated) throw new NotFound("Rejected Reason not found");
 
-  SuccessResponse(res, { 
+  SuccessResponse(res, {
     message: "Rejected Reason updated successfully",
-    data: updated 
+    data: updated
   });
 };

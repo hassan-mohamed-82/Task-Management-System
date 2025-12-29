@@ -1,0 +1,274 @@
+// Task Management System Database Schema
+// Generated for dbdiagram.io
+// https://dbdiagram.io
+
+// ==================== AUTHENTICATION ====================
+
+Table users {
+  _id ObjectId [pk]
+  name varchar [not null]
+  email varchar [not null, unique]
+  password varchar [not null]
+  isVerified boolean [default: false]
+  googleId varchar [unique]
+  totalRejectedPoints int [default: 0]
+  role user_role [default: 'user']
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Enum user_role {
+  admin
+  user
+}
+
+Table super_admins {
+  _id ObjectId [pk]
+  name varchar [not null]
+  email varchar [not null, unique]
+  password varchar [not null]
+  role varchar [default: 'superadmin']
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table email_verifications {
+  _id ObjectId [pk]
+  userId ObjectId [not null, ref: > users._id]
+  verificationCode varchar [not null]
+  expiresAt timestamp [not null]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+// ==================== PROJECT MANAGEMENT ====================
+
+Table projects {
+  _id ObjectId [pk]
+  name varchar [not null]
+  description varchar
+  createdBy ObjectId [ref: > users._id]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table departments {
+  _id ObjectId [pk]
+  name varchar [not null]
+  createdBy ObjectId [not null, ref: > users._id]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table groups {
+  _id ObjectId [pk]
+  name varchar [not null]
+  description varchar
+  createdBy ObjectId [not null, ref: > super_admins._id]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+// ==================== TASK MANAGEMENT ====================
+
+Table tasks {
+  _id ObjectId [pk]
+  name varchar [not null]
+  description varchar
+  projectId ObjectId [not null, ref: > projects._id]
+  start_date timestamp
+  end_date timestamp
+  is_active boolean [default: true]
+  priority task_priority [default: 'medium']
+  status task_status [default: 'Pending']
+  recorde varchar [default: '']
+  file varchar [default: '']
+  Depatment_id ObjectId [ref: > departments._id]
+  createdBy ObjectId [ref: > users._id]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Enum task_priority {
+  low
+  medium
+  high
+}
+
+Enum task_status {
+  Pending
+  in_progress
+  waiting_for_approve
+  Approved
+  rejected
+  null
+}
+
+// ==================== USER ASSIGNMENTS ====================
+
+Table user_projects {
+  _id ObjectId [pk]
+  email varchar [not null]
+  user_id ObjectId [not null, ref: > users._id]
+  project_id ObjectId [not null, ref: > projects._id]
+  role project_role [default: 'member']
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Enum project_role {
+  teamlead
+  member
+  membercanapprove
+  admin
+}
+
+Table user_tasks {
+  _id ObjectId [pk]
+  user_id ObjectId [not null, ref: > users._id]
+  task_id ObjectId [not null, ref: > tasks._id]
+  status user_task_status [not null]
+  is_finished boolean [default: false]
+  rejection_reasonId ObjectId [ref: > rejected_reasons._id]
+  role user_task_role [default: 'member']
+  is_active boolean [default: true]
+  description varchar
+  start_date timestamp
+  end_date timestamp
+  createdAt timestamp
+  updatedAt timestamp
+  
+  Note: 'User_taskId is a self-reference array for related user tasks'
+}
+
+Enum user_task_status {
+  pending
+  in_progress
+  done
+  pending_edit
+  in_progress_edit
+  "Approved from Member_can_approve"
+  "rejected from Member_can_rejected"
+}
+
+Enum user_task_role {
+  member
+  membercanapprove
+}
+
+// ==================== REJECTION MANAGEMENT ====================
+
+Table rejected_reasons {
+  _id ObjectId [pk]
+  reason varchar [not null]
+  points int [not null]
+  createdBy ObjectId [not null, ref: > users._id]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table user_rejected_reasons {
+  _id ObjectId [pk]
+  userId ObjectId [not null, ref: > users._id]
+  reasonId ObjectId [not null, ref: > rejected_reasons._id]
+  taskId ObjectId [not null, ref: > tasks._id]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+// ==================== PAYMENT & SUBSCRIPTION ====================
+
+Table plans {
+  _id ObjectId [pk]
+  name varchar [not null, unique]
+  price_monthly decimal
+  price_annually decimal
+  projects_limit int
+  members_limit int
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table payment_methods {
+  _id ObjectId [pk]
+  name varchar [not null, unique]
+  isActive boolean [default: true]
+  discription varchar [not null]
+  logo_Url varchar [not null]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table payments {
+  _id ObjectId [pk]
+  userId ObjectId [not null, ref: > users._id]
+  plan_id ObjectId [not null, ref: > plans._id]
+  paymentmethod_id ObjectId [not null, ref: > payment_methods._id]
+  amount decimal [not null]
+  final_price decimal
+  status payment_status [default: 'pending']
+  rejected_reason varchar
+  code varchar
+  payment_date timestamp [not null]
+  subscriptionType subscription_type [default: 'monthly']
+  photo varchar [not null]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Enum payment_status {
+  pending
+  approved
+  rejected
+}
+
+Enum subscription_type {
+  monthly
+  annually
+}
+
+Table subscriptions {
+  _id ObjectId [pk]
+  userId ObjectId [not null, ref: > users._id]
+  planId ObjectId [not null, ref: > plans._id]
+  PaymentId ObjectId [not null, ref: > payments._id]
+  startDate timestamp [not null]
+  endDate timestamp [not null]
+  websites_created_count int [default: 0]
+  websites_remaining_count int [default: 0]
+  status subscription_status [default: 'active']
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Enum subscription_status {
+  active
+  expired
+}
+
+// ==================== COUPONS ====================
+
+Table coupons {
+  _id ObjectId [pk]
+  code varchar [not null, unique]
+  start_date timestamp [not null]
+  end_date timestamp [not null]
+  discount_type discount_type [default: 'percentage']
+  discount_value decimal [not null]
+  isActive boolean [default: true]
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Enum discount_type {
+  percentage
+  amount
+}
+
+Table coupon_users {
+  _id ObjectId [pk]
+  userId ObjectId [not null, ref: > users._id]
+  codeId ObjectId [not null, ref: > coupons._id]
+  createdAt timestamp
+  updatedAt timestamp
+}

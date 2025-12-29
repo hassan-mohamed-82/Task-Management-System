@@ -6,10 +6,10 @@ import { SuccessResponse } from "../../utils/response";
 import { BadRequest } from "../../Errors/BadRequest";
 import { ProjectModel } from "../../models/schema/project";
 import { TaskModel } from "../../models/schema/Tasks";
-import { UserProjectModel } from "../../models/schema/User_Project";
-import { UserTaskModel } from "../../models/schema/User_Task";
+import { UserProjectModel } from "../../models/schema/User_in_Project";
+import { UserTaskModel } from "../../models/schema/User_in_Task";
 import { UserRejectedReason } from "../../models/schema/User_Rejection";
-import { RejectedReson } from "../../models/schema/RejectdReson";
+import { RejectedReson } from "../../models/schema/RejectedReason";
 import { User } from "../../models/schema/auth/User";
 
 const toPublicPath = (p: string | null | undefined) => {

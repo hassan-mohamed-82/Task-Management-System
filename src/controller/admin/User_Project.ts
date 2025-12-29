@@ -7,7 +7,7 @@ import { NotFound } from '../../Errors/NotFound';
 import { UnauthorizedError } from '../../Errors/unauthorizedError';
 import { SuccessResponse } from '../../utils/response';
 import { User } from '../../models/schema/auth/User';
-import { UserProjectModel } from '../../models/schema/User_Project';
+import { UserProjectModel } from '../../models/schema/User_in_Project';
 import { sendEmail } from '../../utils/sendEmails';
 
 export const addUserToProject = async (req: Request, res: Response) => {

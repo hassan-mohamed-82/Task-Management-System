@@ -5,9 +5,9 @@ import { BadRequest } from "../../Errors/BadRequest";
 import { NotFound } from "../../Errors/NotFound";
 import { UnauthorizedError } from "../../Errors/unauthorizedError";
 import { SuccessResponse } from "../../utils/response";
-import { UserProjectModel } from "../../models/schema/User_Project";
+import { UserProjectModel } from "../../models/schema/User_in_Project";
 import { User } from "../../models/schema/auth/User";
-import { UserTaskModel } from "../../models/schema/User_Task";
+import { UserTaskModel } from "../../models/schema/User_in_Task";
 import { TaskModel } from "../../models/schema/Tasks";
 import { sendEmail } from "../../utils/sendEmails";
 const toPublicPath = (p: string | null | undefined) => {

@@ -4,10 +4,10 @@ import projectRouter from "./project";
 import SubscriptionRouter from "./subscription";
 import TaskeRouter from "./Task";
 import DepartmentRouter from "./Department";
-import RejectedResonRouter from "./RejectdReson";
+import RejectedResonRouter from "./RejectedReason";
 import profileRouter from "./profile";
- import UserProjectRouter from "./User_Project";
-import usertaskRouter from "./User_Task";
+import UserProjectRouter from "./User_in_Project";
+import usertaskRouter from "./User_in_Task";
 import { authenticated } from "../../middlewares/authenticated";
 import { authorizeRoles } from "../../middlewares/authorized";
 import { checkProjectOrTaskRole } from "../../middlewares/authorized";
@@ -29,18 +29,18 @@ route.use(
 
 // /user-project route
 route.use(
-  "/user-project",    
+  "/user-project",
   UserProjectRouter
 );
 
 route.use(
   "/user-task",
   authorizeRoles('admin', 'user'),
-  checkProjectOrTaskRole(['teamlead','admin']),  
+  checkProjectOrTaskRole(['teamlead', 'admin']),
   usertaskRouter
 );
 
- authorizeRoles('admin')
+authorizeRoles('admin')
 route.use("/profile", profileRouter);
 route.use("/project", projectRouter);
 route.use("/subscriptions", SubscriptionRouter);

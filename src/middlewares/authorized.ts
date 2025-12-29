@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response, RequestHandler } from "express";
 import { UnauthorizedError } from "../Errors/unauthorizedError";
-import { UserProjectModel } from "../models/schema/User_Project";
-import { UserTaskModel } from "../models/schema/User_Task";
+import { UserProjectModel } from "../models/schema/User_in_Project";
+import { UserTaskModel } from "../models/schema/User_in_Task";
 import mongoose from "mongoose";
 import { NotFound } from "../Errors";
 
